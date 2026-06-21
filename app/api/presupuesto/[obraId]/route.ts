@@ -1,0 +1,142 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import type { Rubro, Item, Medicion, RecetaConInsumos, PresupuestoLinea } from "@/types";
+
+// Tipos locales para la respuesta anidada de Supabase
+type MedicionResumen = Pick<Medicion, "id" | "item_id" | "cantidad_calculada">;
+type ItemPresupuesto = Item & { receta: RecetaConInsumos; mediciones: MedicionResumen[] };
+type RubroPresupuesto = Rubro & { items: ItemPresupuesto[] };
+
+function calcularPrecioReceta(ingredientes: RecetaConInsumos["ingredientes"]): number {
+  return ingredientes.reduce(
+    (total, ing) => total + ing.cantidad * ing.insumo.precio_unitario,
+    0,
+  );
+}
+
+function calcularTotalesPresupuesto(
+  lineas: PresupuestoLinea[],
+  pctGG: number,
+  pctBeneficio: number,
+  pctImpuestos: number,
+) {
+  const subtotal = lineas.reduce((t, l) => t + l.subtotal, 0);
+  const gastos_generales = subtotal * (pctGG / 100);
+  const baseBeneficio = subtotal + gastos_generales;
+  const beneficio = baseBeneficio * (pctBeneficio / 100);
+  const baseImpuestos = baseBeneficio + beneficio;
+  const impuestos = baseImpuestos * (pctImpuestos / 100);
+  const total = subtotal + gastos_generales + beneficio + impuestos;
+  return { subtotal, gastos_generales, beneficio, impuestos, total };
+}
+
+const TOTALES_VACIOS = { subtotal: 0, gastos_generales: 0, beneficio: 0, impuestos: 0, total: 0 };
+
+// GET /api/presupuesto/[obraId]
+// Query params opcionales: ?gastos_generales=10&beneficio=15&impuestos=21
+// Los porcentajes se expresan como números enteros (10 = 10%)
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { obraId: string } },
+) {
+  try {
+    const supabase = createSupabaseServerClient();
+    const { searchParams } = new URL(request.url);
+
+    const pctGastosGenerales = Number(searchParams.get("gastos_generales") ?? 10);
+    const pctBeneficio = Number(searchParams.get("beneficio") ?? 15);
+    const pctImpuestos = Number(searchParams.get("impuestos") ?? 21);
+
+    const coeficientes = {
+      gastos_generales: pctGastosGenerales,
+      beneficio: pctBeneficio,
+      impuestos: pctImpuestos,
+    };
+
+    // Verificar que la obra existe
+    const { data: obra, error: obraError } = await supabase
+      .from("obras")
+      .select("*")
+      .eq("id", params.obraId)
+      .single();
+
+    if (obraError || !obra) {
+      return NextResponse.json({ error: "Obra no encontrada" }, { status: 404 });
+    }
+
+    // Traer rubros con items, recetas (ingredientes+insumos) y mediciones
+    const { data: rubrosData, error: rubrosError } = await supabase
+      .from("rubros")
+      .select(`
+        *,
+        items (
+          *,
+          receta:recetas (
+            *,
+            ingredientes:receta_insumos (
+              *,
+              insumo:insumos (*)
+            )
+          ),
+          mediciones (
+            id,
+            item_id,
+            cantidad_calculada
+          )
+        )
+      `)
+      .eq("obra_id", params.obraId)
+      .order("orden", { ascending: true });
+
+    if (rubrosError) throw rubrosError;
+
+    if (!rubrosData || rubrosData.length === 0) {
+      return NextResponse.json(
+        { obra, lineas: [], totales: TOTALES_VACIOS, coeficientes },
+        { status: 200 },
+      );
+    }
+
+    const rubros = rubrosData as RubroPresupuesto[];
+
+    // Construir una línea de presupuesto por cada ítem
+    const lineas: PresupuestoLinea[] = [];
+
+    for (const rubro of rubros) {
+      const itemsOrdenados = [...rubro.items].sort((a, b) => a.orden - b.orden);
+
+      for (const item of itemsOrdenados) {
+        const cantidad_total = item.mediciones.reduce(
+          (sum, m) => sum + m.cantidad_calculada,
+          0,
+        );
+        const precio_unitario = calcularPrecioReceta(item.receta.ingredientes);
+        const subtotal = cantidad_total * precio_unitario;
+
+        lineas.push({
+          rubro_id: rubro.id,
+          rubro_nombre: rubro.nombre,
+          item_id: item.id,
+          receta_id: item.receta_id,
+          receta_nombre: item.receta.nombre,
+          unidad: item.receta.unidad_medida,
+          cantidad_total,
+          precio_unitario,
+          subtotal,
+        });
+      }
+    }
+
+    const totales = calcularTotalesPresupuesto(
+      lineas,
+      pctGastosGenerales,
+      pctBeneficio,
+      pctImpuestos,
+    );
+
+    return NextResponse.json({ obra, lineas, totales, coeficientes }, { status: 200 });
+  } catch (error) {
+    const mensaje = error instanceof Error ? error.message : "Error interno del servidor";
+    return NextResponse.json({ error: mensaje }, { status: 500 });
+  }
+}

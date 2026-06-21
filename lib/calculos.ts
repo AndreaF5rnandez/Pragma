@@ -1,23 +1,10 @@
 import type {
-  MedicionConReceta,
   PresupuestoLinea,
   RecetaConInsumos,
 } from "../types";
 
 function aplicarPorcentaje(base: number, porcentaje: number): number {
   return base * (porcentaje / 100);
-}
-
-function obtenerPrecioUnitarioReceta(receta: MedicionConReceta["receta"]): number {
-  if ("precio_unitario" in receta && typeof receta.precio_unitario === "number") {
-    return receta.precio_unitario;
-  }
-
-  if ("ingredientes" in receta && Array.isArray(receta.ingredientes)) {
-    return calcularPrecioReceta(receta.ingredientes as RecetaConInsumos["ingredientes"]);
-  }
-
-  return 0;
 }
 
 /**
@@ -30,7 +17,7 @@ export function calcularPrecioReceta(
   ingredientes: RecetaConInsumos["ingredientes"],
 ): number {
   return ingredientes.reduce((total, ingrediente) => {
-    return total + ingrediente.cantidad * ingrediente.insumo.precio;
+    return total + ingrediente.cantidad * ingrediente.insumo.precio_unitario;
   }, 0);
 }
 
@@ -88,10 +75,7 @@ export function calcularTotalesPresupuesto(
   porcentajeImpuestos: number,
 ) {
   const subtotal = lineas.reduce((total, linea) => total + linea.subtotal, 0);
-  const gastos_generales = aplicarPorcentaje(
-    subtotal,
-    porcentajeGastosGenerales,
-  );
+  const gastos_generales = aplicarPorcentaje(subtotal, porcentajeGastosGenerales);
   const baseBeneficio = subtotal + gastos_generales;
   const beneficio = aplicarPorcentaje(baseBeneficio, porcentajeBeneficio);
   const baseImpuestos = baseBeneficio + beneficio;
@@ -105,45 +89,4 @@ export function calcularTotalesPresupuesto(
     impuestos,
     total,
   };
-}
-
-/**
- * Agrupa mediciones por receta para construir las lineas finales del presupuesto.
- *
- * @param mediciones Array de mediciones con su receta cargada.
- * @returns Un array de lineas agrupadas por receta con cantidad total, precio unitario y subtotal.
- */
-export function agruparMedicionesPorReceta(
-  mediciones: MedicionConReceta[],
-): PresupuestoLinea[] {
-  const lineasPorReceta = new Map<string, PresupuestoLinea>();
-
-  for (const medicion of mediciones) {
-    const recetaId = medicion.receta_id;
-    const precioUnitario = obtenerPrecioUnitarioReceta(medicion.receta);
-    const lineaExistente = lineasPorReceta.get(recetaId);
-
-    if (lineaExistente) {
-      lineaExistente.cantidad_total += medicion.cantidad_calculada;
-      lineaExistente.subtotal = calcularSubtotalLinea(
-        lineaExistente.cantidad_total,
-        lineaExistente.precio_unitario,
-      );
-      continue;
-    }
-
-    lineasPorReceta.set(recetaId, {
-      receta_id: recetaId,
-      receta_nombre: medicion.receta.nombre,
-      unidad: medicion.receta.unidad,
-      cantidad_total: medicion.cantidad_calculada,
-      precio_unitario: precioUnitario,
-      subtotal: calcularSubtotalLinea(
-        medicion.cantidad_calculada,
-        precioUnitario,
-      ),
-    });
-  }
-
-  return Array.from(lineasPorReceta.values());
 }

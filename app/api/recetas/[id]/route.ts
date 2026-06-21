@@ -7,7 +7,7 @@ import type { Receta, RecetaConInsumos, RecetaInsumo } from "@/types";
 const RECETA_SELECT = `
   id,
   nombre,
-  unidad:unidad_medida,
+  unidad_medida,
   created_at,
   updated_at,
   ingredientes:receta_insumos (
@@ -19,9 +19,9 @@ const RECETA_SELECT = `
     insumo:insumos (
       id,
       nombre,
-      unidad:unidad_medida,
+      unidad_medida,
       tipo,
-      precio:precio_unitario,
+      precio_unitario,
       created_at,
       updated_at
     )
@@ -33,7 +33,7 @@ function obtenerMensajeError(error: unknown): string {
 }
 
 function validarPayloadReceta(
-  payload: Partial<Pick<Receta, "nombre" | "unidad">> & {
+  payload: Partial<Pick<Receta, "nombre" | "unidad_medida">> & {
     ingredientes?: Array<Pick<RecetaInsumo, "insumo_id" | "cantidad">>;
   },
 ) {
@@ -41,7 +41,7 @@ function validarPayloadReceta(
     return "El campo nombre es obligatorio.";
   }
 
-  if (typeof payload.unidad !== "string" || payload.unidad.trim() === "") {
+  if (typeof payload.unidad_medida !== "string" || payload.unidad_medida.trim() === "") {
     return "El campo unidad es obligatorio.";
   }
 
@@ -129,7 +129,7 @@ export async function PUT(
   try {
     const supabase = createSupabaseServerClient();
     const body =
-      (await request.json()) as Partial<Pick<Receta, "nombre" | "unidad">> & {
+      (await request.json()) as Partial<Pick<Receta, "nombre" | "unidad_medida">> & {
         ingredientes?: Array<Pick<RecetaInsumo, "insumo_id" | "cantidad">>;
       };
 
@@ -152,7 +152,7 @@ export async function PUT(
       .from("recetas")
       .update({
         nombre: body.nombre!.trim(),
-        unidad_medida: body.unidad!.trim(),
+        unidad_medida: body.unidad_medida!.trim(),
       })
       .eq("id", params.id);
 
@@ -187,7 +187,7 @@ export async function PUT(
         .from("recetas")
         .update({
           nombre: recetaAnterior.nombre,
-          unidad_medida: recetaAnterior.unidad,
+          unidad_medida: recetaAnterior.unidad_medida,
         })
         .eq("id", params.id);
 

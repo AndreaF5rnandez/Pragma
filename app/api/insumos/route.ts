@@ -21,13 +21,13 @@ function obtenerMensajeError(error: unknown): string {
 }
 
 function validarPayloadInsumo(
-  payload: Partial<Pick<Insumo, "nombre" | "unidad" | "tipo" | "precio">>,
+  payload: Partial<Pick<Insumo, "nombre" | "unidad_medida" | "tipo" | "precio_unitario">>,
 ) {
   if (typeof payload.nombre !== "string" || payload.nombre.trim() === "") {
     return "El campo nombre es obligatorio.";
   }
 
-  if (typeof payload.unidad !== "string" || payload.unidad.trim() === "") {
+  if (typeof payload.unidad_medida !== "string" || payload.unidad_medida.trim() === "") {
     return "El campo unidad es obligatorio.";
   }
 
@@ -36,9 +36,9 @@ function validarPayloadInsumo(
   }
 
   const precio =
-    typeof payload.precio === "number"
-      ? payload.precio
-      : Number(payload.precio);
+    typeof payload.precio_unitario === "number"
+      ? payload.precio_unitario
+      : Number(payload.precio_unitario);
 
   if (!Number.isFinite(precio) || precio < 0) {
     return "El campo precio debe ser un numero valido mayor o igual a 0.";
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from("insumos")
-      .select("id, nombre, unidad:unidad_medida, tipo, precio:precio_unitario, created_at, updated_at")
+      .select("id, nombre, unidad_medida, tipo, precio_unitario, created_at, updated_at")
       .order("nombre", { ascending: true });
 
     if (tipo) {
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     const supabase = createSupabaseServerClient();
     const body =
       (await request.json()) as Partial<
-        Pick<Insumo, "nombre" | "unidad" | "tipo" | "precio">
+        Pick<Insumo, "nombre" | "unidad_medida" | "tipo" | "precio_unitario">
       >;
 
     const errorValidacion = validarPayloadInsumo(body);
@@ -104,12 +104,14 @@ export async function POST(request: NextRequest) {
       .from("insumos")
       .insert({
         nombre: body.nombre!.trim(),
-        unidad_medida: body.unidad!.trim(),
+        unidad_medida: body.unidad_medida!.trim(),
         tipo: body.tipo!,
         precio_unitario:
-          typeof body.precio === "number" ? body.precio : Number(body.precio),
+          typeof body.precio_unitario === "number"
+            ? body.precio_unitario
+            : Number(body.precio_unitario),
       })
-      .select("id, nombre, unidad:unidad_medida, tipo, precio:precio_unitario, created_at, updated_at")
+      .select("id, nombre, unidad_medida, tipo, precio_unitario, created_at, updated_at")
       .single();
 
     if (error) {
