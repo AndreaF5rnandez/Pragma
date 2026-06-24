@@ -610,7 +610,13 @@ export default function MedicionPage() {
   const [obraNombre, setObraNombre] = useState('');
   const [rubroSeleccionadoId, setRubroSeleccionadoId] = useState<string | null>(null);
 
-  /* PROBLEMA 1: acumulador de subtotales por rubro — se actualiza via callback desde ContenidoRubro */
+  /*
+   * FIX 1: subtotales se inicializa desde GET /api/presupuesto/[obraId] al cargar la página.
+   * La API devuelve lineas[] con { rubro_id, subtotal }. Sumamos por rubro_id y guardamos
+   * en este Record. El callback onSubtotalChange (desde ContenidoRubro) actualiza el valor
+   * en vivo cuando el usuario navega y edita mediciones.
+   * NUNCA mostramos '—': si el valor es 0 (sin precios), mostramos $ 0,00.
+   */
   const [subtotales, setSubtotales] = useState<Record<string, number>>({});
 
   const [agregandoRubro, setAgregandoRubro] = useState(false);
@@ -619,9 +625,9 @@ export default function MedicionPage() {
   const [errorNuevoRubro, setErrorNuevoRubro] = useState<string | null>(null);
 
   const nuevoRubroRef = useRef<HTMLInputElement>(null);
-  /* PROBLEMA 2: ref en el <li> del input para hacer scrollIntoView */
   const nuevoRubroLiRef = useRef<HTMLLIElement>(null);
 
+  /* Nombre de la obra */
   useEffect(() => {
     fetch(`/api/obras/${obraId}`)
       .then((res) => res.json())
@@ -633,13 +639,40 @@ export default function MedicionPage() {
       .catch(() => {});
   }, [obraId]);
 
+  /*
+   * FIX 1: fetch inicial de subtotales por rubro desde la API de presupuesto.
+   * Suma todos los subtotales de las líneas agrupando por rubro_id.
+   * Si el fetch falla, subtotales queda en {} y todos muestran $ 0,00.
+   */
+  useEffect(() => {
+    fetch(`/api/presupuesto/${obraId}`)
+      .then((res) => res.json())
+      .then((data: unknown) => {
+        if (
+          !data ||
+          typeof data !== 'object' ||
+          !('lineas' in data) ||
+          !Array.isArray((data as { lineas: unknown }).lineas)
+        ) return;
+
+        type Linea = { rubro_id: string; subtotal: number };
+        const porRubro: Record<string, number> = {};
+        for (const linea of (data as { lineas: Linea[] }).lineas) {
+          porRubro[linea.rubro_id] = (porRubro[linea.rubro_id] ?? 0) + linea.subtotal;
+        }
+        setSubtotales((prev) => ({ ...prev, ...porRubro }));
+      })
+      .catch(() => {});
+  }, [obraId]);
+
+  /* Auto-seleccionar primer rubro */
   useEffect(() => {
     if (!cargandoRubros && rubros.length > 0 && rubroSeleccionadoId === null) {
       setRubroSeleccionadoId(rubros[0].id);
     }
   }, [cargandoRubros, rubros, rubroSeleccionadoId]);
 
-  /* PROBLEMA 2: el input aparece al top de la lista y se hace scrollIntoView */
+  /* Scroll + foco al abrir el input de nuevo rubro */
   useEffect(() => {
     if (agregandoRubro) {
       nuevoRubroLiRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -647,6 +680,7 @@ export default function MedicionPage() {
     }
   }, [agregandoRubro]);
 
+  /* Actualización en vivo desde ContenidoRubro (navegación activa) */
   const handleSubtotalChange = useCallback((rubroId: string, subtotal: number) => {
     setSubtotales((prev) => {
       if (prev[rubroId] === subtotal) return prev;
@@ -686,11 +720,6 @@ export default function MedicionPage() {
   const rubroSeleccionado = rubros.find((r) => r.id === rubroSeleccionadoId) ?? null;
 
   return (
-    /*
-     * PROBLEMA 3: h-full ocupa exactamente el <main> (flex-1 overflow-y-auto en layout.tsx)
-     *   sin desbordarlo — elimina el scroll global de la página.
-     * PROBLEMA 4: mesh gradient #D5D4DC como fondo base del glassmorphism.
-     */
     <div
       className="flex flex-col h-full"
       style={{ backgroundColor: '#D5D4DC', background: MESH_GRADIENT }}
@@ -727,30 +756,27 @@ export default function MedicionPage() {
         </nav>
       </header>
 
-      {/* ── Dos paneles ──
-          PROBLEMA 3: min-h-0 es clave — sin él flex-1 no limita la altura real
-          y los paneles no pueden tener overflow-y-auto independiente */}
+      {/* ── Dos paneles ── */}
       <div className="flex flex-1 min-h-0">
 
-        {/* ── Panel izquierdo ──
-            PROBLEMA 3: overflow-hidden en el aside + scroll solo en la <ul> interna
-            PROBLEMA 4: glassmorphism rgba(255,255,255,0.45) + blur(24px)
-                        borde derecho rgba(255,255,255,0.50) */}
+        {/*
+         * FIX 2: background rgba(255,255,255,0.55) + blur(20px) + border-right rgba(255,255,255,0.60)
+         * FIX 3: border-left rgba(0,0,0,0.10) para separación visual del sidebar de navegación
+         */}
         <aside
           className="w-[260px] shrink-0 flex flex-col overflow-hidden"
           style={{
-            background: 'rgba(255, 255, 255, 0.45)',
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
+            background: 'rgba(255, 255, 255, 0.55)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
             borderLeft: '1px solid rgba(0, 0, 0, 0.10)',
-            borderRight: '1px solid rgba(0, 0, 0, 0.08)',
-            boxShadow: '-4px 0 16px rgba(0,0,0,0.06)',
+            borderRight: '1px solid rgba(255, 255, 255, 0.60)',
           }}
         >
           {/* Header del panel */}
           <div
             className="px-4 py-3 flex items-center justify-between shrink-0"
-            style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.30)' }}
+            style={{ borderBottom: '1px solid rgba(0, 0, 0, 0.06)' }}
           >
             <span className="text-sm font-semibold" style={{ color: '#1A1A2E' }}>Rubros</span>
             <button
@@ -764,7 +790,7 @@ export default function MedicionPage() {
             </button>
           </div>
 
-          {/* Lista — único área scrollable del aside */}
+          {/* Lista */}
           {cargandoRubros ? (
             <div className="flex-1 flex items-center justify-center">
               <p className="text-sm" style={{ color: '#6B7080' }}>Cargando…</p>
@@ -774,19 +800,14 @@ export default function MedicionPage() {
               <p className="text-sm text-center" style={{ color: '#EF4444' }}>{errorRubros}</p>
             </div>
           ) : (
-            /*
-             * PROBLEMA 2: la <ul> es el único contenedor scrollable del aside.
-             * El input de nuevo rubro es SIEMPRE el primer elemento — nunca queda
-             * fuera del viewport. scrollIntoView se invoca al abrir.
-             */
             <ul className="flex-1 overflow-y-auto py-2">
 
-              {/* Input nuevo rubro al top */}
+              {/* Input nuevo rubro — primer elemento de la lista */}
               {agregandoRubro && (
                 <li
                   ref={nuevoRubroLiRef}
                   className="px-2 pb-3"
-                  style={{ borderBottom: '1px solid rgba(255,255,255,0.30)' }}
+                  style={{ borderBottom: '1px solid rgba(0, 0, 0, 0.06)' }}
                 >
                   <input
                     ref={nuevoRubroRef}
@@ -841,12 +862,14 @@ export default function MedicionPage() {
                 </li>
               )}
 
-              {/* Lista de rubros
-                  PROBLEMA 1: truthiness check — muestra '—' cuando totalRubro es 0 o undefined
-                  PROBLEMA 4: seleccionado = pill #C8E64C / hover = rgba(0,0,0,0.04) */}
+              {/*
+               * FIX 1: siempre muestra formatPrecio(subtotales[rubro.id] ?? 0).
+               * El valor viene del fetch de /api/presupuesto/[obraId] (inicialización)
+               * y se actualiza en vivo vía handleSubtotalChange cuando el rubro está activo.
+               * NUNCA muestra '—': $ 0,00 cuando no hay precios asignados.
+               */}
               {rubros.map((rubro) => {
                 const activo = rubro.id === rubroSeleccionadoId;
-                const totalRubro = subtotales[rubro.id];
                 return (
                   <li key={rubro.id} className="group px-2 py-0.5">
                     <div
@@ -867,7 +890,7 @@ export default function MedicionPage() {
                           className="text-xs font-mono tabular-nums shrink-0"
                           style={{ color: activo ? '#2A3300' : '#9CA3AF' }}
                         >
-                          {totalRubro !== undefined ? formatPrecio(totalRubro) : '—'}
+                          {formatPrecio(subtotales[rubro.id] ?? 0)}
                         </span>
                       </button>
                       <button
@@ -886,9 +909,7 @@ export default function MedicionPage() {
           )}
         </aside>
 
-        {/* ── Panel derecho ──
-            PROBLEMA 3: overflow-y-auto con flex-1 → scroll independiente
-            PROBLEMA 4: glassmorphism rgba(255,255,255,0.55) + blur(20px) */}
+        {/* ── Panel derecho ── */}
         <section
           className="flex-1 overflow-y-auto"
           style={{
