@@ -42,16 +42,17 @@ export async function GET(request: NextRequest) {
 }
 
 // POST /api/items
-// Body: { rubro_id, receta_id, descripcion }
+// Body: { rubro_id, descripcion, unidad_medida, receta_id? }
 // El orden se asigna automáticamente como el siguiente disponible para ese rubro
 export async function POST(request: NextRequest) {
   try {
     const supabase = createSupabaseServerClient();
     const body: unknown = await request.json();
-    const { rubro_id, receta_id, descripcion } = body as {
+    const { rubro_id, receta_id, descripcion, unidad_medida } = body as {
       rubro_id: string;
-      receta_id: string;
+      receta_id?: string | null;
       descripcion: string;
+      unidad_medida: string;
     };
 
     if (!rubro_id) {
@@ -61,16 +62,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!receta_id) {
+    if (!descripcion || descripcion.trim() === "") {
       return NextResponse.json(
-        { error: "El receta_id es obligatorio" },
+        { error: "La descripción es obligatoria" },
         { status: 400 },
       );
     }
 
-    if (!descripcion || descripcion.trim() === "") {
+    if (!unidad_medida || unidad_medida.trim() === "") {
       return NextResponse.json(
-        { error: "La descripción es obligatoria" },
+        { error: "La unidad de medida es obligatoria" },
         { status: 400 },
       );
     }
@@ -86,7 +87,13 @@ export async function POST(request: NextRequest) {
 
     const { data, error } = await supabase
       .from("items")
-      .insert({ rubro_id, receta_id, descripcion: descripcion.trim(), orden })
+      .insert({
+        rubro_id,
+        descripcion: descripcion.trim(),
+        unidad_medida: unidad_medida.trim(),
+        orden,
+        ...(receta_id ? { receta_id } : {}),
+      })
       .select(ITEM_SELECT)
       .single();
 

@@ -157,26 +157,26 @@ function SeccionItem({
         <div className="min-w-0">
           <p className="font-medium truncate" style={{ color: '#1A1A2E' }}>{item.descripcion}</p>
           <p className="text-xs mt-0.5" style={{ color: '#6B7080' }}>
-            {item.receta.nombre} · {item.receta.unidad_medida}
+            {item.receta ? `${item.receta.nombre} · ` : ''}{item.unidad_medida}
           </p>
         </div>
         <div className="flex items-center gap-5 shrink-0">
           <div className="text-right">
             <p className="text-xs" style={{ color: '#9CA3AF' }}>Cantidad</p>
             <p className="text-sm font-medium font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
-              {formatNum(cantidadTotal)} {item.receta.unidad_medida}
+              {formatNum(cantidadTotal)} {item.unidad_medida}
             </p>
           </div>
           <div className="text-right">
             <p className="text-xs" style={{ color: '#9CA3AF' }}>P. Unitario</p>
-            <p className="text-sm font-medium font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
-              {formatPrecio(precioUnitario)}
+            <p className="text-sm font-medium font-mono tabular-nums" style={{ color: item.receta ? '#1A1A2E' : '#9CA3AF' }}>
+              {item.receta ? formatPrecio(precioUnitario) : 'Sin precio'}
             </p>
           </div>
           <div className="text-right">
             <p className="text-xs" style={{ color: '#9CA3AF' }}>Subtotal</p>
-            <p className="text-sm font-bold font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
-              {formatPrecio(subtotal)}
+            <p className="text-sm font-bold font-mono tabular-nums" style={{ color: item.receta ? '#1A1A2E' : '#9CA3AF' }}>
+              {item.receta ? formatPrecio(subtotal) : '—'}
             </p>
           </div>
           <div className="flex gap-3">
@@ -211,7 +211,7 @@ function SeccionItem({
               <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider w-20" style={{ color: '#9CA3AF' }}>Ancho</th>
               <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider w-20" style={{ color: '#9CA3AF' }}>Alto</th>
               <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider w-24" style={{ color: '#9CA3AF' }}>
-                Cantidad ({item.receta.unidad_medida})
+                Cantidad ({item.unidad_medida})
               </th>
               <th className="px-3 py-2 w-10" />
             </tr>
@@ -490,39 +490,45 @@ function ContenidoRubro({
   /* Modal nuevo / editar ítem */
   const [modalAbierto, setModalAbierto] = useState(false);
   const [itemEditando, setItemEditando] = useState<ItemConReceta | null>(null);
-  const [formItem, setFormItem] = useState({ descripcion: '', receta_id: '' });
+  const [formItem, setFormItem] = useState({ descripcion: '', unidad_medida: '', receta_id: '' });
   const [errorModal, setErrorModal] = useState<string | null>(null);
   const [guardandoModal, setGuardandoModal] = useState(false);
 
   function abrirCrear() {
     setItemEditando(null);
-    setFormItem({ descripcion: '', receta_id: '' });
+    setFormItem({ descripcion: '', unidad_medida: '', receta_id: '' });
     setErrorModal(null);
     setModalAbierto(true);
   }
 
   function abrirEditar(item: ItemConReceta) {
     setItemEditando(item);
-    setFormItem({ descripcion: item.descripcion, receta_id: item.receta_id });
+    setFormItem({
+      descripcion: item.descripcion,
+      unidad_medida: item.unidad_medida,
+      receta_id: item.receta_id ?? '',
+    });
     setErrorModal(null);
     setModalAbierto(true);
   }
 
   async function handleGuardarModal() {
-    if (!formItem.descripcion.trim() || !formItem.receta_id || guardandoModal) return;
+    if (!formItem.descripcion.trim() || !formItem.unidad_medida || guardandoModal) return;
     setGuardandoModal(true);
     setErrorModal(null);
     try {
       if (itemEditando) {
         await actualizarItem(itemEditando.id, {
           descripcion: formItem.descripcion.trim(),
-          receta_id: formItem.receta_id,
+          unidad_medida: formItem.unidad_medida,
+          receta_id: formItem.receta_id || null,
           orden: itemEditando.orden,
         });
       } else {
         await crearItem({
           descripcion: formItem.descripcion.trim(),
-          receta_id: formItem.receta_id,
+          unidad_medida: formItem.unidad_medida,
+          receta_id: formItem.receta_id || null,
         });
       }
       setModalAbierto(false);
@@ -636,7 +642,7 @@ function ContenidoRubro({
                   type="text"
                   value={formItem.descripcion}
                   onChange={(e) => setFormItem((f) => ({ ...f, descripcion: e.target.value }))}
-                  placeholder="Ej: Tabique de ladrillos huecos 0.18"
+                  placeholder="Ej: Exc. de V. Encadenado inferior"
                   className={INPUT_MODAL}
                   autoFocus
                 />
@@ -644,14 +650,31 @@ function ContenidoRubro({
 
               <div>
                 <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A2E' }}>
-                  Precio Unitario
+                  Unidad de medida
+                </label>
+                <select
+                  value={formItem.unidad_medida}
+                  onChange={(e) => setFormItem((f) => ({ ...f, unidad_medida: e.target.value }))}
+                  className={INPUT_MODAL}
+                >
+                  <option value="">— Elegir unidad —</option>
+                  {['m3','m2','m','u','kg','t','l','h','d','mes','km','ha','cm3','cm2','dm3','mu','cu','a'].map((u) => (
+                    <option key={u} value={u}>{u}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A2E' }}>
+                  Precio Unitario{' '}
+                  <span className="font-normal" style={{ color: '#9CA3AF' }}>(opcional — asignalo después)</span>
                 </label>
                 <select
                   value={formItem.receta_id}
                   onChange={(e) => setFormItem((f) => ({ ...f, receta_id: e.target.value }))}
                   className={INPUT_MODAL}
                 >
-                  <option value="">— Elegir precio unitario —</option>
+                  <option value="">— Sin precio por ahora —</option>
                   {recetas.map((r) => (
                     <option key={r.id} value={r.id}>
                       {r.nombre} ({r.unidad_medida})
@@ -684,9 +707,7 @@ function ContenidoRubro({
               </button>
               <button
                 onClick={handleGuardarModal}
-                disabled={
-                  guardandoModal || !formItem.descripcion.trim() || !formItem.receta_id
-                }
+                disabled={guardandoModal || !formItem.descripcion.trim() || !formItem.unidad_medida}
                 className="bg-[#C8E64C] text-[#2A3300] hover:bg-[#B8D63C] px-5 py-2 rounded-full text-sm font-semibold transition-colors disabled:opacity-50"
               >
                 {guardandoModal

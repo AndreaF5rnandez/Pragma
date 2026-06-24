@@ -48,7 +48,8 @@ export interface Rubro {
 export interface Item {
   id: string;
   rubro_id: string;
-  receta_id: string;
+  receta_id?: string | null;
+  unidad_medida: string;
   descripcion: string;
   orden: number;
   created_at: string;
@@ -78,7 +79,7 @@ export interface RecetaConInsumos extends Receta {
 }
 
 export interface ItemConReceta extends Item {
-  receta: Receta;
+  receta?: Receta | null;
 }
 
 export interface ItemCompleto extends Item {

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Item, ItemConReceta } from "../types";
 
-type ItemInput = Pick<Item, "receta_id" | "descripcion">;
-type ItemUpdate = Pick<Item, "receta_id" | "descripcion" | "orden">;
+type ItemInput = { receta_id?: string | null; descripcion: string; unidad_medida: string };
+type ItemUpdate = { receta_id?: string | null; descripcion: string; unidad_medida: string; orden: number };
 
 export function useItems(rubroId: string) {
   const [items, setItems] = useState<ItemConReceta[]>([]);

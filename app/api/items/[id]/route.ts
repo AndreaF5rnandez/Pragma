@@ -43,7 +43,7 @@ export async function GET(
 }
 
 // PUT /api/items/[id]
-// Body: { receta_id, descripcion, orden? }
+// Body: { descripcion, unidad_medida, orden?, receta_id? }
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } },
@@ -51,18 +51,12 @@ export async function PUT(
   try {
     const supabase = createSupabaseServerClient();
     const body: unknown = await request.json();
-    const { receta_id, descripcion, orden } = body as {
-      receta_id: string;
+    const { receta_id, descripcion, unidad_medida, orden } = body as {
+      receta_id?: string | null;
       descripcion: string;
+      unidad_medida: string;
       orden?: number;
     };
-
-    if (!receta_id) {
-      return NextResponse.json(
-        { error: "El receta_id es obligatorio" },
-        { status: 400 },
-      );
-    }
 
     if (!descripcion || descripcion.trim() === "") {
       return NextResponse.json(
@@ -71,11 +65,19 @@ export async function PUT(
       );
     }
 
+    if (!unidad_medida || unidad_medida.trim() === "") {
+      return NextResponse.json(
+        { error: "La unidad de medida es obligatoria" },
+        { status: 400 },
+      );
+    }
+
     const { data, error } = await supabase
       .from("items")
       .update({
-        receta_id,
         descripcion: descripcion.trim(),
+        unidad_medida: unidad_medida.trim(),
+        receta_id: receta_id ?? null,
         ...(typeof orden === "number" && { orden }),
       })
       .eq("id", params.id)

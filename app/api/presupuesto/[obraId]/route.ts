@@ -4,7 +4,7 @@ import type { Rubro, Item, Medicion, RecetaConInsumos, PresupuestoLinea } from "
 
 // Tipos locales para la respuesta anidada de Supabase
 type MedicionResumen = Pick<Medicion, "id" | "item_id" | "cantidad_calculada">;
-type ItemPresupuesto = Item & { receta: RecetaConInsumos; mediciones: MedicionResumen[] };
+type ItemPresupuesto = Item & { receta?: RecetaConInsumos | null; mediciones: MedicionResumen[] };
 type RubroPresupuesto = Rubro & { items: ItemPresupuesto[] };
 
 function calcularPrecioReceta(ingredientes: RecetaConInsumos["ingredientes"]): number {
@@ -106,6 +106,8 @@ export async function GET(
       const itemsOrdenados = [...rubro.items].sort((a, b) => a.orden - b.orden);
 
       for (const item of itemsOrdenados) {
+        if (!item.receta) continue;
+
         const cantidad_total = item.mediciones.reduce(
           (sum, m) => sum + m.cantidad_calculada,
           0,
@@ -117,9 +119,9 @@ export async function GET(
           rubro_id: rubro.id,
           rubro_nombre: rubro.nombre,
           item_id: item.id,
-          receta_id: item.receta_id,
+          receta_id: item.receta_id ?? '',
           receta_nombre: item.receta.nombre,
-          unidad: item.receta.unidad_medida,
+          unidad: item.unidad_medida,
           cantidad_total,
           precio_unitario,
           subtotal,
