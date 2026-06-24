@@ -21,10 +21,10 @@ function formatNum(v: number) {
 }
 
 const INPUT_MODAL =
-  'w-full border border-black/[0.12] rounded-[10px] px-3.5 py-2.5 text-sm text-[#1A1A2E] bg-white/60 backdrop-blur-[8px] focus:outline-none focus:border-[#C8E64C] focus:shadow-[0_0_0_3px_rgba(200,230,76,0.2)] transition-all placeholder:text-[#9CA3AF]';
+  'w-full border border-black/[0.12] rounded-[10px] px-3.5 py-2.5 text-sm bg-white/60 backdrop-blur-[8px] focus:outline-none focus:border-[#C8E64C] focus:shadow-[0_0_0_3px_rgba(200,230,76,0.2)] transition-all placeholder:text-[#9CA3AF]';
 
 const INPUT_FILA =
-  'w-full border border-transparent rounded-[8px] px-2 py-1 text-sm text-[#1A1A2E] bg-transparent focus:outline-none focus:border-black/[0.12] focus:bg-white/60 focus:shadow-[0_0_0_3px_rgba(200,230,76,0.2)] transition-all';
+  'w-full border border-transparent rounded-[8px] px-2 py-1 text-sm bg-transparent focus:outline-none focus:border-black/[0.12] focus:bg-white/60 focus:shadow-[0_0_0_3px_rgba(200,230,76,0.2)] transition-all';
 
 /* ─── FilaForm ─────────────────────────────────────────────────────────────── */
 
@@ -61,13 +61,11 @@ function SeccionItem({
   const { mediciones, cargando, crearMedicion, actualizarMedicion, eliminarMedicion } =
     useMediciones(item.id);
 
-  /* Fila de nueva medición */
   const [fila, setFila] = useState<FilaForm>(FILA_INICIAL);
   const [guardandoFila, setGuardandoFila] = useState(false);
   const [errorFila, setErrorFila] = useState<string | null>(null);
   const descripcionRef = useRef<HTMLInputElement>(null);
 
-  /* Fila en edición */
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<FilaForm>(FILA_INICIAL);
 
@@ -79,8 +77,6 @@ function SeccionItem({
   useEffect(() => {
     onSubtotalChange(item.id, subtotal);
   }, [item.id, subtotal, onSubtotalChange]);
-
-  /* ── Nueva medición ── */
 
   async function handleGuardarFila() {
     if (!fila.descripcion.trim() || guardandoFila) return;
@@ -106,8 +102,6 @@ function SeccionItem({
   function onKeyDownNueva(e: React.KeyboardEvent) {
     if (e.key === 'Enter') { e.preventDefault(); handleGuardarFila(); }
   }
-
-  /* ── Edición de medición existente ── */
 
   function entrarEdicion(m: Medicion) {
     setEditandoId(m.id);
@@ -139,9 +133,11 @@ function SeccionItem({
 
   return (
     <div
-      className="rounded-2xl mb-4 overflow-hidden backdrop-blur-[20px]"
+      className="rounded-2xl mb-4 overflow-hidden"
       style={{
         background: 'rgba(255, 255, 255, 0.55)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
         border: '1px solid rgba(255, 255, 255, 0.60)',
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.06)',
       }}
@@ -180,18 +176,10 @@ function SeccionItem({
             </p>
           </div>
           <div className="flex gap-3">
-            <button
-              onClick={onEditar}
-              className="text-xs font-medium hover:underline"
-              style={{ color: '#C8E64C' }}
-            >
+            <button onClick={onEditar} className="text-xs font-medium hover:underline" style={{ color: '#C8E64C' }}>
               Editar
             </button>
-            <button
-              onClick={onEliminar}
-              className="text-xs font-medium hover:underline"
-              style={{ color: '#EF4444' }}
-            >
+            <button onClick={onEliminar} className="text-xs font-medium hover:underline" style={{ color: '#EF4444' }}>
               Eliminar
             </button>
           </div>
@@ -205,12 +193,15 @@ function SeccionItem({
         <table className="w-full text-sm">
           <thead>
             <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-              <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Descripción</th>
-              <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider w-20" style={{ color: '#9CA3AF' }}>N</th>
-              <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider w-20" style={{ color: '#9CA3AF' }}>Largo</th>
-              <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider w-20" style={{ color: '#9CA3AF' }}>Ancho</th>
-              <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider w-20" style={{ color: '#9CA3AF' }}>Alto</th>
-              <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider w-24" style={{ color: '#9CA3AF' }}>
+              <th className="px-4 py-2 text-left" style={{ fontSize: '13px', fontWeight: 600, color: '#6B7080' }}>
+                Descripción
+              </th>
+              {(['N', 'Largo', 'Ancho', 'Alto'] as const).map((h) => (
+                <th key={h} className="px-3 py-2 text-right w-20" style={{ fontSize: '13px', fontWeight: 600, color: '#6B7080' }}>
+                  {h}
+                </th>
+              ))}
+              <th className="px-3 py-2 text-right w-24" style={{ fontSize: '13px', fontWeight: 600, color: '#6B7080' }}>
                 Cantidad ({item.unidad_medida})
               </th>
               <th className="px-3 py-2 w-10" />
@@ -218,107 +209,50 @@ function SeccionItem({
           </thead>
           <tbody>
             {mediciones.map((m) => {
-              /* ── Fila en modo edición ── */
               if (m.id === editandoId) {
                 return (
                   <tr
                     key={m.id}
-                    style={{
-                      borderBottom: '1px solid rgba(0,0,0,0.04)',
-                      background: 'rgba(200,230,76,0.06)',
-                    }}
+                    style={{ borderBottom: '1px solid rgba(0,0,0,0.04)', background: 'rgba(200,230,76,0.06)' }}
                     onBlur={(e) => {
-                      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                        handleGuardarEdicion();
-                      }
+                      if (!e.currentTarget.contains(e.relatedTarget as Node)) handleGuardarEdicion();
                     }}
                   >
                     <td className="px-4 py-1.5">
                       <input
-                        autoFocus
-                        type="text"
-                        value={editForm.descripcion}
-                        onChange={(e) =>
-                          setEditForm((f) => ({ ...f, descripcion: e.target.value }))
-                        }
+                        autoFocus type="text" value={editForm.descripcion}
+                        onChange={(e) => setEditForm((f) => ({ ...f, descripcion: e.target.value }))}
                         onKeyDown={onKeyDownEdicion}
-                        className={INPUT_FILA}
+                        className={INPUT_FILA} style={{ color: '#1A1A2E' }}
                       />
                     </td>
-                    <td className="px-3 py-1.5">
-                      <input
-                        type="number" min="0" step="0.001"
-                        value={editForm.n === '' ? '' : editForm.n}
-                        onChange={(e) =>
-                          setEditForm((f) => ({
-                            ...f,
-                            n: e.target.value === '' ? '' : Number(e.target.value),
-                          }))
-                        }
-                        onKeyDown={onKeyDownEdicion}
-                        className={`${INPUT_FILA} text-right font-mono`}
-                      />
-                    </td>
-                    <td className="px-3 py-1.5">
-                      <input
-                        type="number" min="0" step="0.001"
-                        value={editForm.largo === '' ? '' : editForm.largo}
-                        onChange={(e) =>
-                          setEditForm((f) => ({
-                            ...f,
-                            largo: e.target.value === '' ? '' : Number(e.target.value),
-                          }))
-                        }
-                        onKeyDown={onKeyDownEdicion}
-                        className={`${INPUT_FILA} text-right font-mono`}
-                      />
-                    </td>
-                    <td className="px-3 py-1.5">
-                      <input
-                        type="number" min="0" step="0.001"
-                        value={editForm.ancho === '' ? '' : editForm.ancho}
-                        onChange={(e) =>
-                          setEditForm((f) => ({
-                            ...f,
-                            ancho: e.target.value === '' ? '' : Number(e.target.value),
-                          }))
-                        }
-                        onKeyDown={onKeyDownEdicion}
-                        className={`${INPUT_FILA} text-right font-mono`}
-                      />
-                    </td>
-                    <td className="px-3 py-1.5">
-                      <input
-                        type="number" min="0" step="0.001"
-                        value={editForm.alto === '' ? '' : editForm.alto}
-                        onChange={(e) =>
-                          setEditForm((f) => ({
-                            ...f,
-                            alto: e.target.value === '' ? '' : Number(e.target.value),
-                          }))
-                        }
-                        onKeyDown={onKeyDownEdicion}
-                        className={`${INPUT_FILA} text-right font-mono`}
-                      />
-                    </td>
+                    {(['n', 'largo', 'ancho', 'alto'] as const).map((campo) => (
+                      <td key={campo} className="px-3 py-1.5">
+                        <input
+                          type="number" min="0" step="0.001"
+                          value={editForm[campo] === '' ? '' : editForm[campo]}
+                          onChange={(e) =>
+                            setEditForm((f) => ({
+                              ...f,
+                              [campo]: e.target.value === '' ? '' : Number(e.target.value),
+                            } as FilaForm))
+                          }
+                          onKeyDown={onKeyDownEdicion}
+                          className={`${INPUT_FILA} text-right font-mono`}
+                          style={{ color: '#1A1A2E' }}
+                        />
+                      </td>
+                    ))}
                     <td className="px-3 py-2 text-right font-mono font-medium tabular-nums" style={{ color: '#6B7080' }}>
                       {formatNum(m.cantidad_calculada)}
                     </td>
                     <td className="px-3 py-1.5 text-center">
-                      <button
-                        onClick={() => setEditandoId(null)}
-                        title="Cancelar edición (Esc)"
-                        className="text-xl leading-none transition-colors"
-                        style={{ color: '#9CA3AF' }}
-                      >
-                        ×
-                      </button>
+                      <button onClick={() => setEditandoId(null)} className="text-xl leading-none" style={{ color: '#9CA3AF' }}>×</button>
                     </td>
                   </tr>
                 );
               }
 
-              /* ── Fila en modo lectura ── */
               return (
                 <tr
                   key={m.id}
@@ -339,24 +273,18 @@ function SeccionItem({
                       onClick={async (e) => {
                         e.stopPropagation();
                         if (!window.confirm('¿Eliminás esta medición?')) return;
-                        try {
-                          await eliminarMedicion(m.id);
-                        } catch (err) {
-                          window.alert(err instanceof Error ? err.message : 'Error al eliminar');
-                        }
+                        try { await eliminarMedicion(m.id); }
+                        catch (err) { window.alert(err instanceof Error ? err.message : 'Error al eliminar'); }
                       }}
                       className="text-xl leading-none transition-colors"
                       style={{ color: '#9CA3AF' }}
-                      title="Eliminar medición"
-                    >
-                      ×
-                    </button>
+                    >×</button>
                   </td>
                 </tr>
               );
             })}
 
-            {/* Fila de nueva medición */}
+            {/* Fila nueva medición */}
             <tr style={{ borderTop: '2px solid rgba(200,230,76,0.3)' }}>
               <td className="px-4 py-1.5">
                 <input
@@ -367,65 +295,27 @@ function SeccionItem({
                   onKeyDown={onKeyDownNueva}
                   placeholder="Descripción…"
                   className={INPUT_FILA}
+                  style={{ color: '#1A1A2E' }}
                 />
               </td>
-              <td className="px-3 py-1.5">
-                <input
-                  type="number" min="0" step="0.001"
-                  value={fila.n === '' ? '' : fila.n}
-                  onChange={(e) =>
-                    setFila((f) => ({ ...f, n: e.target.value === '' ? '' : Number(e.target.value) }))
-                  }
-                  onKeyDown={onKeyDownNueva}
-                  placeholder="1"
-                  className={`${INPUT_FILA} text-right font-mono`}
-                />
-              </td>
-              <td className="px-3 py-1.5">
-                <input
-                  type="number" min="0" step="0.001"
-                  value={fila.largo === '' ? '' : fila.largo}
-                  onChange={(e) =>
-                    setFila((f) => ({
-                      ...f,
-                      largo: e.target.value === '' ? '' : Number(e.target.value),
-                    }))
-                  }
-                  onKeyDown={onKeyDownNueva}
-                  placeholder=""
-                  className={`${INPUT_FILA} text-right font-mono`}
-                />
-              </td>
-              <td className="px-3 py-1.5">
-                <input
-                  type="number" min="0" step="0.001"
-                  value={fila.ancho === '' ? '' : fila.ancho}
-                  onChange={(e) =>
-                    setFila((f) => ({
-                      ...f,
-                      ancho: e.target.value === '' ? '' : Number(e.target.value),
-                    }))
-                  }
-                  onKeyDown={onKeyDownNueva}
-                  placeholder=""
-                  className={`${INPUT_FILA} text-right font-mono`}
-                />
-              </td>
-              <td className="px-3 py-1.5">
-                <input
-                  type="number" min="0" step="0.001"
-                  value={fila.alto === '' ? '' : fila.alto}
-                  onChange={(e) =>
-                    setFila((f) => ({
-                      ...f,
-                      alto: e.target.value === '' ? '' : Number(e.target.value),
-                    }))
-                  }
-                  onKeyDown={onKeyDownNueva}
-                  placeholder=""
-                  className={`${INPUT_FILA} text-right font-mono`}
-                />
-              </td>
+              {(['n', 'largo', 'ancho', 'alto'] as const).map((campo) => (
+                <td key={campo} className="px-3 py-1.5">
+                  <input
+                    type="number" min="0" step="0.001"
+                    value={fila[campo] === '' ? '' : fila[campo]}
+                    onChange={(e) =>
+                      setFila((f) => ({
+                        ...f,
+                        [campo]: e.target.value === '' ? '' : Number(e.target.value),
+                      } as FilaForm))
+                    }
+                    onKeyDown={onKeyDownNueva}
+                    placeholder={campo === 'n' ? '1' : ''}
+                    className={`${INPUT_FILA} text-right font-mono`}
+                    style={{ color: '#1A1A2E' }}
+                  />
+                </td>
+              ))}
               <td className="px-3 py-1.5" />
               <td className="px-3 py-1.5 text-center">
                 <button
@@ -434,19 +324,14 @@ function SeccionItem({
                   title="Guardar (Enter)"
                   className="font-bold text-base leading-none disabled:opacity-30 transition-colors"
                   style={{ color: '#C8E64C' }}
-                >
-                  ↵
-                </button>
+                >↵</button>
               </td>
             </tr>
 
             {errorFila && (
               <tr>
                 <td colSpan={7} className="px-4 py-1.5">
-                  <div
-                    className="rounded-[10px] px-3 py-1.5 text-xs"
-                    style={{ background: '#FEE2E2', color: '#EF4444' }}
-                  >
+                  <div className="rounded-[10px] px-3 py-1.5 text-xs" style={{ background: '#FEE2E2', color: '#EF4444' }}>
                     {errorFila}
                   </div>
                 </td>
@@ -475,16 +360,12 @@ function ContenidoRubro({
   const { items, cargando, error, crearItem, actualizarItem, eliminarItem } = useItems(rubroId);
   const [subtotalesPorItem, setSubtotalesPorItem] = useState<Record<string, number>>({});
 
-  // Sincroniza el mapa con la lista real de ítems:
-  // inicializa en 0 los nuevos, elimina los que ya no existen.
   useEffect(() => {
     if (items.length === 0) return;
     setSubtotalesPorItem((prev) => {
       const itemIds = new Set(items.map((i) => i.id));
       const next: Record<string, number> = {};
-      for (const id of itemIds) {
-        next[id] = prev[id] ?? 0;
-      }
+      for (const id of itemIds) { next[id] = prev[id] ?? 0; }
       return next;
     });
   }, [items]);
@@ -502,7 +383,6 @@ function ContenidoRubro({
     onSubtotalChange(rubroId, subtotalRubro);
   }, [rubroId, subtotalRubro, onSubtotalChange]);
 
-  /* Modal nuevo / editar ítem */
   const [modalAbierto, setModalAbierto] = useState(false);
   const [itemEditando, setItemEditando] = useState<ItemConReceta | null>(null);
   const [formItem, setFormItem] = useState({ descripcion: '', unidad_medida: '', receta_id: '' });
@@ -518,11 +398,7 @@ function ContenidoRubro({
 
   function abrirEditar(item: ItemConReceta) {
     setItemEditando(item);
-    setFormItem({
-      descripcion: item.descripcion,
-      unidad_medida: item.unidad_medida,
-      receta_id: item.receta_id ?? '',
-    });
+    setFormItem({ descripcion: item.descripcion, unidad_medida: item.unidad_medida, receta_id: item.receta_id ?? '' });
     setErrorModal(null);
     setModalAbierto(true);
   }
@@ -556,27 +432,19 @@ function ContenidoRubro({
   }
 
   async function handleEliminarItem(item: ItemConReceta) {
-    if (
-      !window.confirm(
-        `¿Eliminás el ítem "${item.descripcion}"? Se eliminarán todas sus mediciones.`,
-      )
-    )
-      return;
-    try {
-      await eliminarItem(item.id);
-    } catch (err) {
-      window.alert(err instanceof Error ? err.message : 'Error al eliminar');
-    }
+    if (!window.confirm(`¿Eliminás el ítem "${item.descripcion}"? Se eliminarán todas sus mediciones.`)) return;
+    try { await eliminarItem(item.id); }
+    catch (err) { window.alert(err instanceof Error ? err.message : 'Error al eliminar'); }
   }
 
   return (
     <div className="p-6">
-      {/* Encabezado del rubro */}
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-bold" style={{ color: '#1A1A2E' }}>{rubroNombre}</h2>
         <button
           onClick={abrirCrear}
-          className="bg-[#C8E64C] text-[#2A3300] hover:bg-[#B8D63C] px-5 py-2 rounded-full text-sm font-semibold transition-colors"
+          className="px-5 py-2 text-sm font-semibold transition-opacity hover:opacity-80"
+          style={{ background: '#C8E64C', color: '#2A3300', borderRadius: '9999px' }}
         >
           + Nuevo ítem
         </button>
@@ -585,10 +453,7 @@ function ContenidoRubro({
       {cargando ? (
         <p className="text-center mt-16 text-sm" style={{ color: '#6B7080' }}>Cargando ítems…</p>
       ) : error ? (
-        <div
-          className="mx-auto max-w-md mt-16 rounded-2xl px-4 py-3 text-sm text-center"
-          style={{ background: '#FEE2E2', color: '#EF4444' }}
-        >
+        <div className="mx-auto max-w-md mt-16 rounded-2xl px-4 py-3 text-sm text-center" style={{ background: '#FEE2E2', color: '#EF4444' }}>
           {error}
         </div>
       ) : items.length === 0 ? (
@@ -596,7 +461,8 @@ function ContenidoRubro({
           <p className="text-sm" style={{ color: '#6B7080' }}>Este rubro no tiene ítems todavía.</p>
           <button
             onClick={abrirCrear}
-            className="bg-[#C8E64C] text-[#2A3300] hover:bg-[#B8D63C] px-5 py-2.5 rounded-full text-sm font-semibold transition-colors"
+            className="px-5 py-2.5 text-sm font-semibold transition-opacity hover:opacity-80"
+            style={{ background: '#C8E64C', color: '#2A3300', borderRadius: '9999px' }}
           >
             + Agregar ítem
           </button>
@@ -614,15 +480,11 @@ function ContenidoRubro({
             />
           ))}
 
-          {/* Subtotal del rubro — solo se muestra cuando hay al menos un precio asignado */}
           {subtotalRubro > 0 && (
             <div className="flex justify-end mt-2 mb-4">
               <div
                 className="rounded-2xl px-5 py-3 text-right"
-                style={{
-                  background: 'rgba(200,230,76,0.12)',
-                  border: '1px solid rgba(200,230,76,0.30)',
-                }}
+                style={{ background: 'rgba(200,230,76,0.12)', border: '1px solid rgba(200,230,76,0.30)' }}
               >
                 <p className="text-xs mb-0.5" style={{ color: '#6B7080' }}>Subtotal {rubroNombre}</p>
                 <p className="text-xl font-bold font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
@@ -638,9 +500,11 @@ function ContenidoRubro({
       {modalAbierto && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div
-            className="w-full max-w-md p-6 backdrop-blur-[24px]"
+            className="w-full max-w-md p-6"
             style={{
               background: 'rgba(255, 255, 255, 0.85)',
+              backdropFilter: 'blur(24px)',
+              WebkitBackdropFilter: 'blur(24px)',
               border: '1px solid rgba(255, 255, 255, 0.60)',
               borderRadius: '20px',
               boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
@@ -652,27 +516,22 @@ function ContenidoRubro({
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A2E' }}>
-                  Descripción
-                </label>
+                <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A2E' }}>Descripción</label>
                 <input
-                  type="text"
-                  value={formItem.descripcion}
+                  type="text" value={formItem.descripcion}
                   onChange={(e) => setFormItem((f) => ({ ...f, descripcion: e.target.value }))}
                   placeholder="Ej: Exc. de V. Encadenado inferior"
-                  className={INPUT_MODAL}
-                  autoFocus
+                  className={INPUT_MODAL} style={{ color: '#1A1A2E' }} autoFocus
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A2E' }}>
-                  Unidad de medida
-                </label>
+                <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A2E' }}>Unidad de medida</label>
                 <select
                   value={formItem.unidad_medida}
                   onChange={(e) => setFormItem((f) => ({ ...f, unidad_medida: e.target.value }))}
                   className={INPUT_MODAL}
+                  style={{ color: formItem.unidad_medida ? '#1A1A2E' : '#9CA3AF' }}
                 >
                   <option value="">— Elegir unidad —</option>
                   {['m3','m2','m','u','kg','t','l','h','d','mes','km','ha','cm3','cm2','dm3','mu','cu','a'].map((u) => (
@@ -684,38 +543,31 @@ function ContenidoRubro({
               <div>
                 <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A2E' }}>
                   Precio Unitario{' '}
-                  <span className="font-normal" style={{ color: '#9CA3AF' }}>(opcional — asignalo después)</span>
+                  <span className="font-normal" style={{ color: '#9CA3AF' }}>(opcional)</span>
                 </label>
                 <select
                   value={formItem.receta_id}
                   onChange={(e) => setFormItem((f) => ({ ...f, receta_id: e.target.value }))}
                   className={INPUT_MODAL}
+                  style={{ color: formItem.receta_id ? '#1A1A2E' : '#9CA3AF' }}
                 >
                   <option value="">— Sin precio por ahora —</option>
                   {recetas.map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.nombre} ({r.unidad_medida})
-                    </option>
+                    <option key={r.id} value={r.id}>{r.nombre} ({r.unidad_medida})</option>
                   ))}
                 </select>
               </div>
             </div>
 
             {errorModal && (
-              <div
-                className="mt-4 rounded-[10px] px-3 py-2 text-sm"
-                style={{ background: '#FEE2E2', color: '#EF4444' }}
-              >
+              <div className="mt-4 rounded-[10px] px-3 py-2 text-sm" style={{ background: '#FEE2E2', color: '#EF4444' }}>
                 {errorModal}
               </div>
             )}
 
             <div className="flex justify-between mt-6">
               <button
-                onClick={() => {
-                  setModalAbierto(false);
-                  setItemEditando(null);
-                }}
+                onClick={() => { setModalAbierto(false); setItemEditando(null); }}
                 disabled={guardandoModal}
                 className="px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
                 style={{ color: '#6B7080' }}
@@ -725,13 +577,10 @@ function ContenidoRubro({
               <button
                 onClick={handleGuardarModal}
                 disabled={guardandoModal || !formItem.descripcion.trim() || !formItem.unidad_medida}
-                className="bg-[#C8E64C] text-[#2A3300] hover:bg-[#B8D63C] px-5 py-2 rounded-full text-sm font-semibold transition-colors disabled:opacity-50"
+                className="px-5 py-2 text-sm font-semibold transition-opacity hover:opacity-80 disabled:opacity-50"
+                style={{ background: '#C8E64C', color: '#2A3300', borderRadius: '9999px' }}
               >
-                {guardandoModal
-                  ? 'Guardando…'
-                  : itemEditando
-                  ? 'Guardar cambios'
-                  : 'Crear ítem'}
+                {guardandoModal ? 'Guardando…' : itemEditando ? 'Guardar cambios' : 'Crear ítem'}
               </button>
             </div>
           </div>
@@ -743,28 +592,36 @@ function ContenidoRubro({
 
 /* ─── Página principal ─────────────────────────────────────────────────────── */
 
+const MESH_GRADIENT = [
+  'radial-gradient(ellipse at 15% 80%, rgba(200, 230, 76, 0.12) 0%, transparent 50%)',
+  'radial-gradient(ellipse at 85% 20%, rgba(200, 180, 220, 0.15) 0%, transparent 50%)',
+  'radial-gradient(ellipse at 80% 85%, rgba(180, 220, 210, 0.12) 0%, transparent 50%)',
+  'radial-gradient(ellipse at 50% 50%, rgba(215, 210, 220, 0.3) 0%, transparent 70%)',
+  'linear-gradient(135deg, #D8D6DE 0%, #CDCBD5 50%, #D2D0D8 100%)',
+].join(', ');
+
 export default function MedicionPage() {
   const params = useParams();
   const obraId = params.id as string;
 
-  const { rubros, cargando: cargandoRubros, error: errorRubros, crearRubro, eliminarRubro } =
-    useRubros(obraId);
+  const { rubros, cargando: cargandoRubros, error: errorRubros, crearRubro, eliminarRubro } = useRubros(obraId);
   const { recetas } = useRecetas();
 
   const [obraNombre, setObraNombre] = useState('');
   const [rubroSeleccionadoId, setRubroSeleccionadoId] = useState<string | null>(null);
+
+  /* PROBLEMA 1: acumulador de subtotales por rubro — se actualiza via callback desde ContenidoRubro */
   const [subtotales, setSubtotales] = useState<Record<string, number>>({});
 
-  /* Nuevo rubro inline */
   const [agregandoRubro, setAgregandoRubro] = useState(false);
   const [nuevoRubroNombre, setNuevoRubroNombre] = useState('');
   const [guardandoRubro, setGuardandoRubro] = useState(false);
   const [errorNuevoRubro, setErrorNuevoRubro] = useState<string | null>(null);
-  const nuevoRubroRef = useRef<HTMLInputElement>(null);
-  // PROBLEMA 2: ref para hacer scroll al input cuando aparece
-  const listaRubrosRef = useRef<HTMLUListElement>(null);
 
-  /* Cargar nombre de la obra */
+  const nuevoRubroRef = useRef<HTMLInputElement>(null);
+  /* PROBLEMA 2: ref en el <li> del input para hacer scrollIntoView */
+  const nuevoRubroLiRef = useRef<HTMLLIElement>(null);
+
   useEffect(() => {
     fetch(`/api/obras/${obraId}`)
       .then((res) => res.json())
@@ -776,21 +633,17 @@ export default function MedicionPage() {
       .catch(() => {});
   }, [obraId]);
 
-  /* Auto-seleccionar primer rubro */
   useEffect(() => {
     if (!cargandoRubros && rubros.length > 0 && rubroSeleccionadoId === null) {
       setRubroSeleccionadoId(rubros[0].id);
     }
   }, [cargandoRubros, rubros, rubroSeleccionadoId]);
 
-  /* Foco al abrir el input de nuevo rubro + scroll al top de la lista */
+  /* PROBLEMA 2: el input aparece al top de la lista y se hace scrollIntoView */
   useEffect(() => {
     if (agregandoRubro) {
-      // Scroll al top para que el input sea visible
-      if (listaRubrosRef.current) {
-        listaRubrosRef.current.scrollTop = 0;
-      }
-      setTimeout(() => nuevoRubroRef.current?.focus(), 0);
+      nuevoRubroLiRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      setTimeout(() => nuevoRubroRef.current?.focus(), 50);
     }
   }, [agregandoRubro]);
 
@@ -818,12 +671,7 @@ export default function MedicionPage() {
   }
 
   async function handleEliminarRubro(rubro: Rubro) {
-    if (
-      !window.confirm(
-        `¿Eliminás "${rubro.nombre}"? Se eliminarán todos sus ítems y mediciones.`,
-      )
-    )
-      return;
+    if (!window.confirm(`¿Eliminás "${rubro.nombre}"? Se eliminarán todos sus ítems y mediciones.`)) return;
     try {
       await eliminarRubro(rubro.id);
       if (rubroSeleccionadoId === rubro.id) {
@@ -838,10 +686,16 @@ export default function MedicionPage() {
   const rubroSeleccionado = rubros.find((r) => r.id === rubroSeleccionadoId) ?? null;
 
   return (
-    /* PROBLEMA 3: h-full para que el layout encaje dentro del <main> sin causar scroll global */
-    <div className="flex flex-col h-full">
-
-      {/* ── Barra de navegación superior con tabs ── */}
+    /*
+     * PROBLEMA 3: h-full ocupa exactamente el <main> (flex-1 overflow-y-auto en layout.tsx)
+     *   sin desbordarlo — elimina el scroll global de la página.
+     * PROBLEMA 4: mesh gradient #D5D4DC como fondo base del glassmorphism.
+     */
+    <div
+      className="flex flex-col h-full"
+      style={{ backgroundColor: '#D5D4DC', background: MESH_GRADIENT }}
+    >
+      {/* ── Barra superior ── */}
       <header
         className="shrink-0 z-10 px-6 flex items-stretch gap-4"
         style={{
@@ -873,37 +727,42 @@ export default function MedicionPage() {
         </nav>
       </header>
 
-      {/* ── Contenido de dos paneles — PROBLEMA 3: min-h-0 para que flexbox controle la altura ── */}
+      {/* ── Dos paneles ──
+          PROBLEMA 3: min-h-0 es clave — sin él flex-1 no limita la altura real
+          y los paneles no pueden tener overflow-y-auto independiente */}
       <div className="flex flex-1 min-h-0">
 
-        {/* ── Panel izquierdo: rubros ──
-            PROBLEMA 3: overflow-hidden en el aside, scroll solo en la <ul>
-            PROBLEMA 4: fondo #F8F4EE (pragma-fondo) + borde derecho #E4DDCC (pragma-superficie) */}
+        {/* ── Panel izquierdo ──
+            PROBLEMA 3: overflow-hidden en el aside + scroll solo en la <ul> interna
+            PROBLEMA 4: glassmorphism rgba(255,255,255,0.45) + blur(24px)
+                        borde derecho rgba(255,255,255,0.50) */}
         <aside
           className="w-[260px] shrink-0 flex flex-col overflow-hidden"
           style={{
-            background: '#F8F4EE',
-            borderRight: '1px solid #E4DDCC',
+            background: 'rgba(255, 255, 255, 0.45)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            borderRight: '1px solid rgba(255, 255, 255, 0.50)',
           }}
         >
-          {/* Header del panel izquierdo */}
+          {/* Header del panel */}
           <div
             className="px-4 py-3 flex items-center justify-between shrink-0"
-            style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
+            style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.30)' }}
           >
             <span className="text-sm font-semibold" style={{ color: '#1A1A2E' }}>Rubros</span>
             <button
               onClick={() => setAgregandoRubro(true)}
               disabled={agregandoRubro}
-              className="w-7 h-7 flex items-center justify-center rounded-full text-sm font-bold transition-colors hover:bg-[#B8D63C] disabled:opacity-40"
-              style={{ background: '#C8E64C', color: '#2A3300' }}
+              className="w-7 h-7 flex items-center justify-center text-sm font-bold transition-opacity hover:opacity-80 disabled:opacity-40"
+              style={{ background: '#C8E64C', color: '#2A3300', borderRadius: '9999px' }}
               title="Nuevo rubro"
             >
               +
             </button>
           </div>
 
-          {/* Lista de rubros — scroll independiente */}
+          {/* Lista — único área scrollable del aside */}
           {cargandoRubros ? (
             <div className="flex-1 flex items-center justify-center">
               <p className="text-sm" style={{ color: '#6B7080' }}>Cargando…</p>
@@ -913,16 +772,19 @@ export default function MedicionPage() {
               <p className="text-sm text-center" style={{ color: '#EF4444' }}>{errorRubros}</p>
             </div>
           ) : (
-            /* PROBLEMA 2: el input de nuevo rubro va DENTRO de la <ul>, al principio,
-               así siempre queda visible sin importar cuántos rubros haya */
-            <ul className="flex-1 overflow-y-auto py-1" ref={listaRubrosRef}>
+            /*
+             * PROBLEMA 2: la <ul> es el único contenedor scrollable del aside.
+             * El input de nuevo rubro es SIEMPRE el primer elemento — nunca queda
+             * fuera del viewport. scrollIntoView se invoca al abrir.
+             */
+            <ul className="flex-1 overflow-y-auto py-2">
 
-              {/* Input de nuevo rubro — siempre visible al top */}
+              {/* Input nuevo rubro al top */}
               {agregandoRubro && (
                 <li
-                  key="__nuevo-rubro"
-                  className="px-3 py-2"
-                  style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
+                  ref={nuevoRubroLiRef}
+                  className="px-2 pb-3"
+                  style={{ borderBottom: '1px solid rgba(255,255,255,0.30)' }}
                 >
                   <input
                     ref={nuevoRubroRef}
@@ -939,13 +801,11 @@ export default function MedicionPage() {
                     }}
                     placeholder="Nombre del rubro…"
                     disabled={guardandoRubro}
-                    className="w-full border border-black/[0.12] rounded-[10px] px-2.5 py-2 text-sm text-[#1A1A2E] bg-white/60 focus:outline-none focus:border-[#C8E64C] focus:shadow-[0_0_0_3px_rgba(200,230,76,0.2)] transition-all placeholder:text-[#9CA3AF]"
+                    className="mt-2 w-full border border-black/[0.12] rounded-[10px] px-2.5 py-2 text-sm bg-white/60 focus:outline-none focus:border-[#C8E64C] focus:shadow-[0_0_0_3px_rgba(200,230,76,0.2)] transition-all placeholder:text-[#9CA3AF]"
+                    style={{ color: '#1A1A2E' }}
                   />
                   {errorNuevoRubro && (
-                    <div
-                      className="mt-1 rounded-[8px] px-2 py-1 text-xs"
-                      style={{ background: '#FEE2E2', color: '#EF4444' }}
-                    >
+                    <div className="mt-1 rounded-[8px] px-2 py-1 text-xs" style={{ background: '#FEE2E2', color: '#EF4444' }}>
                       {errorNuevoRubro}
                     </div>
                   )}
@@ -953,18 +813,15 @@ export default function MedicionPage() {
                     <button
                       onClick={handleCrearRubro}
                       disabled={guardandoRubro || !nuevoRubroNombre.trim()}
-                      className="flex-1 bg-[#C8E64C] text-[#2A3300] hover:bg-[#B8D63C] text-xs py-1.5 rounded-full font-semibold disabled:opacity-40 transition-colors"
+                      className="flex-1 text-xs py-1.5 font-semibold disabled:opacity-40 transition-opacity hover:opacity-80"
+                      style={{ background: '#C8E64C', color: '#2A3300', borderRadius: '9999px' }}
                     >
                       {guardandoRubro ? '…' : 'Crear'}
                     </button>
                     <button
-                      onClick={() => {
-                        setAgregandoRubro(false);
-                        setNuevoRubroNombre('');
-                        setErrorNuevoRubro(null);
-                      }}
-                      className="flex-1 text-xs py-1.5 rounded-full font-medium transition-colors"
-                      style={{ color: '#6B7080' }}
+                      onClick={() => { setAgregandoRubro(false); setNuevoRubroNombre(''); setErrorNuevoRubro(null); }}
+                      className="flex-1 text-xs py-1.5 font-medium transition-colors hover:bg-black/[0.04]"
+                      style={{ color: '#6B7080', borderRadius: '9999px' }}
                     >
                       Cancelar
                     </button>
@@ -975,56 +832,51 @@ export default function MedicionPage() {
               {/* Estado vacío */}
               {rubros.length === 0 && !agregandoRubro && (
                 <li className="flex flex-col items-center justify-center px-5 py-16 text-center">
-                  <p className="text-sm font-medium mb-1" style={{ color: '#1A1A2E' }}>
-                    Creá tu primer rubro para empezar
-                  </p>
+                  <p className="text-sm font-medium mb-1" style={{ color: '#1A1A2E' }}>Creá tu primer rubro</p>
                   <p className="text-xs leading-relaxed" style={{ color: '#6B7080' }}>
-                    Ej: Excavación, Hormigón Armado, Mampostería
+                    Ej: Excavación, Hormigón Armado
                   </p>
                 </li>
               )}
 
-              {/* Lista de rubros */}
+              {/* Lista de rubros
+                  PROBLEMA 1: truthiness check — muestra '—' cuando totalRubro es 0 o undefined
+                  PROBLEMA 4: seleccionado = pill #C8E64C / hover = rgba(0,0,0,0.04) */}
               {rubros.map((rubro) => {
                 const activo = rubro.id === rubroSeleccionadoId;
-                /* PROBLEMA 1: mostrar '—' cuando el subtotal es 0 o undefined
-                   (significa que el rubro no tiene precios asignados todavía) */
                 const totalRubro = subtotales[rubro.id];
                 return (
-                  <li
-                    key={rubro.id}
-                    className="group flex items-stretch transition-colors"
-                    style={{
-                      borderLeft: activo ? '3px solid #C8E64C' : '3px solid transparent',
-                    }}
-                  >
-                    <button
-                      onClick={() => setRubroSeleccionadoId(rubro.id)}
-                      className="flex-1 min-w-0 text-left px-4 py-3 flex items-center justify-between gap-2 transition-colors hover:bg-black/[0.04]"
-                      style={
-                        activo
-                          ? { background: 'rgba(200,230,76,0.10)' }
-                          : undefined
-                      }
+                  <li key={rubro.id} className="group px-2 py-0.5">
+                    <div
+                      className="flex items-center overflow-hidden transition-all duration-150"
+                      style={{ background: activo ? '#C8E64C' : 'transparent', borderRadius: '12px' }}
                     >
-                      <span className="text-sm font-medium truncate" style={{ color: '#1A1A2E' }}>
-                        {rubro.nombre}
-                      </span>
-                      <span
-                        className="text-xs font-mono tabular-nums shrink-0"
-                        style={{ color: activo ? '#1A1A2E' : '#9CA3AF', fontWeight: activo ? 600 : 400 }}
+                      <button
+                        onClick={() => setRubroSeleccionadoId(rubro.id)}
+                        className={`flex-1 min-w-0 text-left px-3 py-2.5 flex items-center justify-between gap-2 transition-colors ${!activo ? 'hover:bg-black/[0.04]' : ''}`}
+                        style={{
+                          color: activo ? '#2A3300' : '#1A1A2E',
+                          fontWeight: activo ? 600 : 500,
+                          borderRadius: '12px',
+                        }}
                       >
-                        {totalRubro ? formatPrecio(totalRubro) : '—'}
-                      </span>
-                    </button>
-                    <button
-                      onClick={() => handleEliminarRubro(rubro)}
-                      title="Eliminar rubro"
-                      className="px-2 opacity-0 group-hover:opacity-100 transition-opacity text-lg leading-none"
-                      style={{ color: '#9CA3AF' }}
-                    >
-                      ×
-                    </button>
+                        <span className="text-sm truncate">{rubro.nombre}</span>
+                        <span
+                          className="text-xs font-mono tabular-nums shrink-0"
+                          style={{ color: activo ? '#2A3300' : '#9CA3AF' }}
+                        >
+                          {totalRubro ? formatPrecio(totalRubro) : '—'}
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => handleEliminarRubro(rubro)}
+                        title="Eliminar rubro"
+                        className="pr-2 pl-1 py-2 opacity-0 group-hover:opacity-100 transition-opacity text-xl leading-none"
+                        style={{ color: activo ? '#2A3300' : '#9CA3AF' }}
+                      >
+                        ×
+                      </button>
+                    </div>
                   </li>
                 );
               })}
@@ -1032,16 +884,19 @@ export default function MedicionPage() {
           )}
         </aside>
 
-        {/* ── Panel derecho: ítems y mediciones ──
-            PROBLEMA 3: overflow-y-auto en lugar de min-h-screen — scroll independiente */}
+        {/* ── Panel derecho ──
+            PROBLEMA 3: overflow-y-auto con flex-1 → scroll independiente
+            PROBLEMA 4: glassmorphism rgba(255,255,255,0.55) + blur(20px) */}
         <section
           className="flex-1 overflow-y-auto"
-          style={{ background: 'rgba(255,255,255,0.55)' }}
+          style={{
+            background: 'rgba(255, 255, 255, 0.55)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+          }}
         >
           {rubroSeleccionado === null ? (
-            <div
-              className="flex flex-col items-center justify-center gap-4 h-full"
-            >
+            <div className="flex flex-col items-center justify-center gap-4 h-full">
               {rubros.length === 0 && !cargandoRubros ? (
                 <>
                   <div className="text-center">
@@ -1054,7 +909,8 @@ export default function MedicionPage() {
                   </div>
                   <button
                     onClick={() => setAgregandoRubro(true)}
-                    className="bg-[#C8E64C] text-[#2A3300] hover:bg-[#B8D63C] px-5 py-2.5 rounded-full text-sm font-semibold transition-colors"
+                    className="px-5 py-2.5 text-sm font-semibold transition-opacity hover:opacity-80"
+                    style={{ background: '#C8E64C', color: '#2A3300', borderRadius: '9999px' }}
                   >
                     + Crear primer rubro
                   </button>
