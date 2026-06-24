@@ -571,9 +571,15 @@ function ContenidoRubro({
           {error}
         </div>
       ) : items.length === 0 ? (
-        <p className="text-center mt-16 text-sm" style={{ color: '#6B7080' }}>
-          No hay ítems en este rubro. Creá el primero con el botón de arriba.
-        </p>
+        <div className="flex flex-col items-center justify-center mt-24 gap-3">
+          <p className="text-sm" style={{ color: '#6B7080' }}>Este rubro no tiene ítems todavía.</p>
+          <button
+            onClick={abrirCrear}
+            className="bg-[#C8E64C] text-[#2A3300] hover:bg-[#B8D63C] px-5 py-2.5 rounded-full text-sm font-semibold transition-colors"
+          >
+            + Agregar ítem
+          </button>
+        </div>
       ) : (
         <>
           {items.map((item) => (
@@ -827,10 +833,27 @@ export default function MedicionPage() {
         <aside
           className="w-[260px] shrink-0 flex flex-col sticky top-12 h-[calc(100vh-3rem)] overflow-hidden backdrop-blur-[20px]"
           style={{
-            background: 'rgba(255, 255, 255, 0.45)',
-            borderRight: '1px solid rgba(255, 255, 255, 0.50)',
+            background: 'rgba(255, 255, 255, 0.60)',
+            borderRight: '1px solid rgba(0, 0, 0, 0.08)',
           }}
         >
+          {/* Header del panel izquierdo */}
+          <div
+            className="px-4 py-3 flex items-center justify-between shrink-0"
+            style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
+          >
+            <span className="text-sm font-semibold" style={{ color: '#1A1A2E' }}>Rubros</span>
+            <button
+              onClick={() => setAgregandoRubro(true)}
+              disabled={agregandoRubro}
+              className="w-7 h-7 flex items-center justify-center rounded-full text-sm font-bold transition-colors hover:bg-[#B8D63C] disabled:opacity-40"
+              style={{ background: '#C8E64C', color: '#2A3300' }}
+              title="Nuevo rubro"
+            >
+              +
+            </button>
+          </div>
+
           {/* Lista de rubros */}
           {cargandoRubros ? (
             <div className="flex-1 flex items-center justify-center">
@@ -896,77 +919,87 @@ export default function MedicionPage() {
             </ul>
           )}
 
-          {/* Footer: agregar rubro */}
-          <div className="p-3 shrink-0" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-            {agregandoRubro ? (
-              <div>
-                <input
-                  ref={nuevoRubroRef}
-                  type="text"
-                  value={nuevoRubroNombre}
-                  onChange={(e) => setNuevoRubroNombre(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') { e.preventDefault(); handleCrearRubro(); }
-                    if (e.key === 'Escape') {
-                      setAgregandoRubro(false);
-                      setNuevoRubroNombre('');
-                      setErrorNuevoRubro(null);
-                    }
-                  }}
-                  placeholder="Nombre del rubro…"
-                  disabled={guardandoRubro}
-                  className="w-full border border-black/[0.12] rounded-[10px] px-2.5 py-2 text-sm text-[#1A1A2E] bg-white/60 focus:outline-none focus:border-[#C8E64C] focus:shadow-[0_0_0_3px_rgba(200,230,76,0.2)] transition-all placeholder:text-[#9CA3AF]"
-                />
-                {errorNuevoRubro && (
-                  <div
-                    className="mt-1 rounded-[8px] px-2 py-1 text-xs"
-                    style={{ background: '#FEE2E2', color: '#EF4444' }}
-                  >
-                    {errorNuevoRubro}
-                  </div>
-                )}
-                <div className="flex gap-2 mt-2">
-                  <button
-                    onClick={handleCrearRubro}
-                    disabled={guardandoRubro || !nuevoRubroNombre.trim()}
-                    className="flex-1 bg-[#C8E64C] text-[#2A3300] hover:bg-[#B8D63C] text-xs py-1.5 rounded-full font-semibold disabled:opacity-40 transition-colors"
-                  >
-                    {guardandoRubro ? '…' : 'Crear'}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setAgregandoRubro(false);
-                      setNuevoRubroNombre('');
-                      setErrorNuevoRubro(null);
-                    }}
-                    className="flex-1 text-xs py-1.5 rounded-full font-medium transition-colors"
-                    style={{ color: '#6B7080' }}
-                  >
-                    Cancelar
-                  </button>
+          {/* Footer: formulario de nuevo rubro */}
+          {agregandoRubro && (
+            <div className="p-3 shrink-0" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+              <input
+                ref={nuevoRubroRef}
+                type="text"
+                value={nuevoRubroNombre}
+                onChange={(e) => setNuevoRubroNombre(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.preventDefault(); handleCrearRubro(); }
+                  if (e.key === 'Escape') {
+                    setAgregandoRubro(false);
+                    setNuevoRubroNombre('');
+                    setErrorNuevoRubro(null);
+                  }
+                }}
+                placeholder="Nombre del rubro…"
+                disabled={guardandoRubro}
+                className="w-full border border-black/[0.12] rounded-[10px] px-2.5 py-2 text-sm text-[#1A1A2E] bg-white/60 focus:outline-none focus:border-[#C8E64C] focus:shadow-[0_0_0_3px_rgba(200,230,76,0.2)] transition-all placeholder:text-[#9CA3AF]"
+              />
+              {errorNuevoRubro && (
+                <div
+                  className="mt-1 rounded-[8px] px-2 py-1 text-xs"
+                  style={{ background: '#FEE2E2', color: '#EF4444' }}
+                >
+                  {errorNuevoRubro}
                 </div>
+              )}
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={handleCrearRubro}
+                  disabled={guardandoRubro || !nuevoRubroNombre.trim()}
+                  className="flex-1 bg-[#C8E64C] text-[#2A3300] hover:bg-[#B8D63C] text-xs py-1.5 rounded-full font-semibold disabled:opacity-40 transition-colors"
+                >
+                  {guardandoRubro ? '…' : 'Crear'}
+                </button>
+                <button
+                  onClick={() => {
+                    setAgregandoRubro(false);
+                    setNuevoRubroNombre('');
+                    setErrorNuevoRubro(null);
+                  }}
+                  className="flex-1 text-xs py-1.5 rounded-full font-medium transition-colors"
+                  style={{ color: '#6B7080' }}
+                >
+                  Cancelar
+                </button>
               </div>
-            ) : (
-              <button
-                onClick={() => setAgregandoRubro(true)}
-                className="w-full text-sm font-medium hover:underline text-left py-0.5"
-                style={{ color: '#6B7080' }}
-              >
-                + Agregar rubro
-              </button>
-            )}
-          </div>
+            </div>
+          )}
         </aside>
 
         {/* ── Panel derecho: ítems y mediciones ── */}
-        <section className="flex-1 min-h-screen">
+        <section className="flex-1 min-h-screen" style={{ background: 'rgba(255,255,255,0.20)' }}>
           {rubroSeleccionado === null ? (
-            <div className="flex items-center justify-center h-64">
-              <p className="text-sm" style={{ color: '#6B7080' }}>
-                {rubros.length === 0 && !cargandoRubros
-                  ? 'Creá un rubro en el panel izquierdo para comenzar.'
-                  : 'Seleccioná un rubro para ver sus ítems.'}
-              </p>
+            <div
+              className="flex flex-col items-center justify-center gap-4"
+              style={{ height: 'calc(100vh - 48px)' }}
+            >
+              {rubros.length === 0 && !cargandoRubros ? (
+                <>
+                  <div className="text-center">
+                    <p className="text-sm font-medium mb-1" style={{ color: '#1A1A2E' }}>
+                      Creá tu primer rubro para empezar
+                    </p>
+                    <p className="text-xs" style={{ color: '#9CA3AF' }}>
+                      Ej: Excavación, Hormigón Armado, Mampostería
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setAgregandoRubro(true)}
+                    className="bg-[#C8E64C] text-[#2A3300] hover:bg-[#B8D63C] px-5 py-2.5 rounded-full text-sm font-semibold transition-colors"
+                  >
+                    + Crear primer rubro
+                  </button>
+                </>
+              ) : (
+                <p className="text-sm" style={{ color: '#6B7080' }}>
+                  Seleccioná un rubro para ver sus ítems.
+                </p>
+              )}
             </div>
           ) : (
             <ContenidoRubro
