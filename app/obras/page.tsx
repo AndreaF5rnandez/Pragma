@@ -88,7 +88,7 @@ export default function ObrasPage() {
         <h1 className="text-2xl font-bold text-pragma-texto">Obras</h1>
         <button
           onClick={abrirModal}
-          className="bg-pragma-accent text-white px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
+          className="bg-pragma-accent text-white px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
         >
           + Nueva obra
         </button>
@@ -98,66 +98,69 @@ export default function ObrasPage() {
       {cargando ? (
         <p className="text-center text-pragma-textoClaro mt-20">Cargando...</p>
       ) : error ? (
-        <p className="text-center text-red-600 mt-20">{error}</p>
+        <div className="mx-auto max-w-md mt-20 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-red-700 text-sm text-center">
+          {error}
+        </div>
       ) : obras.length === 0 ? (
         <div className="flex flex-col items-center justify-center mt-24 gap-4">
+          <span className="text-7xl text-pragma-superficie select-none">◻</span>
           <p className="text-pragma-textoClaro text-lg">No tenés obras todavía.</p>
           <button
             onClick={abrirModal}
-            className="bg-pragma-accent text-white px-5 py-2.5 rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
+            className="bg-pragma-accent text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
           >
             Crear la primera obra
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {obras.map((obra) => {
             const { etiqueta, clases } = ESTADO_CONFIG[obra.estado];
             return (
               <div
                 key={obra.id}
-                className="bg-white rounded-xl border border-pragma-superficie shadow-sm p-5 flex flex-col gap-4 hover:shadow-md transition-shadow"
+                className="bg-white rounded-xl shadow-[0_4px_6px_-1px_rgba(28,20,16,0.08),0_2px_4px_-1px_rgba(28,20,16,0.05)] p-5 flex flex-col gap-4 hover:shadow-[0_10px_15px_-3px_rgba(28,20,16,0.08),0_4px_6px_-2px_rgba(28,20,16,0.04)] transition-shadow"
               >
                 {/* Encabezado de la tarjeta */}
                 <div className="flex items-start justify-between gap-3">
-                  <h2 className="font-bold text-pragma-texto text-base leading-tight">
+                  <h2 className="font-semibold text-pragma-texto text-base leading-tight">
                     {obra.nombre}
                   </h2>
                   <span
-                    className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${clases}`}
+                    className={`shrink-0 text-xs font-medium px-2.5 py-0.5 rounded-full ${clases}`}
                   >
                     {etiqueta}
                   </span>
                 </div>
 
                 {/* Datos */}
-                <div className="flex flex-col gap-1 text-sm text-pragma-textoClaro flex-1">
-                  <p>
-                    <span className="text-pragma-texto font-medium">{obra.cliente}</span>
-                  </p>
+                <div className="flex flex-col gap-1 text-sm flex-1">
+                  <p className="font-medium text-pragma-texto">{obra.cliente}</p>
                   {obra.fecha_inicio && (
-                    <p>Inicio: {formatFecha(obra.fecha_inicio)}</p>
+                    <p className="text-pragma-textoClaro">Inicio: {formatFecha(obra.fecha_inicio)}</p>
                   )}
-                  {obra.direccion && <p className="truncate">{obra.direccion}</p>}
+                  {obra.direccion && (
+                    <p className="text-pragma-textoClaro truncate">{obra.direccion}</p>
+                  )}
                 </div>
 
                 {/* Acciones */}
-                <div className="flex gap-2 pt-1 border-t border-pragma-superficie">
+                <div className="flex gap-2 pt-3 border-t border-pragma-superficie">
                   <button
                     onClick={() => router.push(`/obras/${obra.id}/medicion`)}
-                    className="flex-1 bg-pragma-accent text-white text-sm font-medium py-2 rounded-md hover:opacity-90 transition-opacity"
+                    className="flex-1 bg-pragma-accent text-white text-sm font-semibold py-2 rounded-lg hover:opacity-90 transition-opacity"
                   >
                     Abrir obra
                   </button>
                   <button
                     onClick={() => router.push(`/obras/${obra.id}/presupuesto`)}
-                    className="flex-1 bg-pragma-superficie text-pragma-totales text-sm font-medium py-2 rounded-md hover:opacity-80 transition-opacity"
+                    className="flex-1 bg-pragma-superficie text-pragma-totales text-sm font-semibold py-2 rounded-lg hover:opacity-80 transition-opacity"
                   >
                     Ver presupuesto
                   </button>
                   <button
                     onClick={() => handleEliminar(obra)}
-                    className="px-3 py-2 text-sm font-medium text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                    className="px-3 py-2 text-sm font-medium text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   >
                     Eliminar
                   </button>
@@ -230,9 +233,13 @@ export default function ObrasPage() {
               </div>
             </div>
 
-            {errorModal && <p className="mt-4 text-sm text-red-600">{errorModal}</p>}
+            {errorModal && (
+              <div className="mt-4 bg-red-50 border border-red-200 rounded-md px-3 py-2 text-sm text-red-700">
+                {errorModal}
+              </div>
+            )}
 
-            <div className="flex justify-end gap-3 mt-6">
+            <div className="flex justify-between mt-6">
               <button
                 onClick={() => setModalAbierto(false)}
                 disabled={guardando}
@@ -243,7 +250,7 @@ export default function ObrasPage() {
               <button
                 onClick={handleGuardar}
                 disabled={guardando || !form.nombre.trim() || !form.cliente.trim()}
-                className="bg-pragma-accent text-white px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-60"
+                className="bg-pragma-accent text-white px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-60"
               >
                 {guardando ? 'Guardando…' : 'Crear obra'}
               </button>

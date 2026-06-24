@@ -8,7 +8,7 @@ const config: Config = {
         pragma: {
           sidebar: '#3B302B',
           accent: '#8B5E3C',
-          fondo: '#F8F4EE',
+          fondo: '#FAF8F5',
           superficie: '#E4DDCC',
           totales: '#5C3A1E',
           texto: '#1C1410',

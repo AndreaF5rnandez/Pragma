@@ -38,6 +38,13 @@ const TIPO_CONFIG: Record<Insumo['tipo'], { etiqueta: string; clases: string }> 
   equipo:       { etiqueta: 'Equipo',       clases: 'bg-orange-100 text-orange-800' },
 };
 
+const FILTROS: { valor: Insumo['tipo'] | undefined; etiqueta: string }[] = [
+  { valor: undefined,      etiqueta: 'Todos' },
+  { valor: 'material',     etiqueta: 'Materiales' },
+  { valor: 'mano_de_obra', etiqueta: 'Mano de obra' },
+  { valor: 'equipo',       etiqueta: 'Equipos' },
+];
+
 /* ─── Helpers ──────────────────────────────────────────────────────────────── */
 
 type FormData = Omit<Insumo, 'id' | 'created_at' | 'updated_at'>;
@@ -50,7 +57,7 @@ const FORM_INICIAL: FormData = {
 };
 
 const INPUT_INLINE =
-  'w-full border border-pragma-superficie rounded px-2 py-1.5 text-sm text-pragma-texto bg-white focus:outline-none focus:ring-1 focus:ring-pragma-accent';
+  'w-full border border-transparent rounded px-2 py-1.5 text-sm text-pragma-texto bg-transparent focus:outline-none focus:border-pragma-superficie focus:bg-white focus:ring-1 focus:ring-pragma-accent transition-colors';
 const INPUT_MODAL =
   'w-full border border-pragma-superficie rounded-md px-3 py-2 text-sm text-pragma-texto bg-white focus:outline-none focus:ring-2 focus:ring-pragma-accent';
 
@@ -59,11 +66,7 @@ function formatPrecio(precio: number) {
 }
 
 /* ─── Componente UnidadInput ───────────────────────────────────────────────── */
-/*
- * Muestra un <select> con las unidades predefinidas + "Otra…".
- * Al elegir "Otra…" (o si el valor inicial no está en el listado) cambia a un
- * <input type="text"> con un botón ↩ para volver al select.
- */
+
 function UnidadInput({
   value,
   onChange,
@@ -141,7 +144,7 @@ export default function InsumosPage() {
   const [fila, setFila] = useState<FormData>(FORM_INICIAL);
   const [errorFila, setErrorFila] = useState<string | null>(null);
   const [guardandoFila, setGuardandoFila] = useState(false);
-  const [filaClave, setFilaClave] = useState(0); // fuerza remount de UnidadInput al limpiar la fila
+  const [filaClave, setFilaClave] = useState(0);
   const nombreRef = useRef<HTMLInputElement>(null);
 
   /* ── Modal ── */
@@ -185,7 +188,6 @@ export default function InsumosPage() {
       await crearInsumo(fila);
       setFila(FORM_INICIAL);
       setFilaClave((n) => n + 1);
-      // Devuelve el foco al primer campo para seguir cargando
       setTimeout(() => nombreRef.current?.focus(), 0);
     } catch (err) {
       setErrorFila(err instanceof Error ? err.message : 'Error al guardar');
@@ -210,84 +212,85 @@ export default function InsumosPage() {
   return (
     <div className="p-8">
       {/* Barra superior */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold text-pragma-texto">Lista de insumos</h1>
-          <select
-            value={filtroTipo ?? ''}
-            onChange={(e) =>
-              setFiltroTipo(
-                e.target.value === '' ? undefined : (e.target.value as Insumo['tipo']),
-              )
-            }
-            className="text-sm border border-pragma-superficie rounded-md px-3 py-1.5 bg-white text-pragma-texto focus:outline-none focus:ring-2 focus:ring-pragma-accent"
-          >
-            <option value="">Todos</option>
-            <option value="material">Material</option>
-            <option value="mano_de_obra">Mano de obra</option>
-            <option value="equipo">Equipo</option>
-          </select>
-        </div>
-        {/* El botón lleva el foco directamente a la fila de creación */}
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold text-pragma-texto">Lista de insumos</h1>
         <button
           onClick={() => nombreRef.current?.focus()}
-          className="bg-pragma-accent text-white px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
+          className="bg-pragma-accent text-white px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
         >
           + Nuevo insumo
         </button>
       </div>
 
+      {/* Pills de filtro */}
+      <div className="flex gap-2 mb-6">
+        {FILTROS.map(({ valor, etiqueta }) => (
+          <button
+            key={etiqueta}
+            onClick={() => setFiltroTipo(valor)}
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+              filtroTipo === valor
+                ? 'bg-pragma-accent text-white'
+                : 'bg-pragma-superficie text-pragma-textoClaro hover:opacity-80'
+            }`}
+          >
+            {etiqueta}
+          </button>
+        ))}
+      </div>
+
       {cargando ? (
         <p className="text-center text-pragma-textoClaro mt-20">Cargando...</p>
       ) : error ? (
-        <p className="text-center text-red-600 mt-20">{error}</p>
+        <div className="mx-auto max-w-md mt-20 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-red-700 text-sm text-center">
+          {error}
+        </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-pragma-superficie">
+        <div className="bg-white rounded-xl shadow-[0_4px_6px_-1px_rgba(28,20,16,0.08),0_2px_4px_-1px_rgba(28,20,16,0.05)] overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-pragma-superficie text-left">
-                <th className="px-4 py-3 font-medium text-pragma-textoClaro w-[30%]">Nombre</th>
-                <th className="px-4 py-3 font-medium text-pragma-textoClaro w-[22%]">Unidad</th>
-                <th className="px-4 py-3 font-medium text-pragma-textoClaro w-[14%]">Tipo</th>
-                <th className="px-4 py-3 font-medium text-pragma-textoClaro text-right w-[18%]">
+                <th className="px-4 py-3 text-xs font-medium text-pragma-textoClaro uppercase tracking-wider w-[30%]">Nombre</th>
+                <th className="px-4 py-3 text-xs font-medium text-pragma-textoClaro uppercase tracking-wider w-[22%]">Unidad</th>
+                <th className="px-4 py-3 text-xs font-medium text-pragma-textoClaro uppercase tracking-wider w-[14%]">Tipo</th>
+                <th className="px-4 py-3 text-xs font-medium text-pragma-textoClaro uppercase tracking-wider text-right w-[18%]">
                   Precio unitario
                 </th>
-                <th className="px-4 py-3 font-medium text-pragma-textoClaro text-right w-[16%]">
+                <th className="px-4 py-3 text-xs font-medium text-pragma-textoClaro uppercase tracking-wider text-right w-[16%]">
                   Acciones
                 </th>
               </tr>
             </thead>
             <tbody>
-              {/* Filas de datos existentes */}
-              {insumos.map((insumo) => {
+              {insumos.map((insumo, i) => {
                 const { etiqueta, clases } = TIPO_CONFIG[insumo.tipo];
                 return (
                   <tr
                     key={insumo.id}
-                    className="border-t border-pragma-superficie/60 hover:bg-pragma-fondo/70 transition-colors"
+                    className={`border-t border-pragma-superficie/60 hover:bg-pragma-fondo/80 transition-colors ${
+                      i % 2 === 0 ? 'bg-white' : 'bg-pragma-fondo/40'
+                    }`}
                   >
                     <td className="px-4 py-3 font-medium text-pragma-texto">{insumo.nombre}</td>
                     <td className="px-4 py-3 text-pragma-textoClaro">{insumo.unidad_medida}</td>
                     <td className="px-4 py-3">
-                      <span
-                        className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${clases}`}
-                      >
+                      <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${clases}`}>
                         {etiqueta}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right text-pragma-texto tabular-nums">
+                    <td className="px-4 py-3 text-right text-pragma-texto font-mono tabular-nums">
                       {formatPrecio(insumo.precio_unitario)}
                     </td>
                     <td className="px-4 py-3 text-right space-x-4">
                       <button
                         onClick={() => abrirEditar(insumo)}
-                        className="text-pragma-accent font-medium hover:underline"
+                        className="text-pragma-accent text-xs font-medium hover:underline"
                       >
                         Editar
                       </button>
                       <button
                         onClick={() => handleEliminar(insumo)}
-                        className="text-red-500 font-medium hover:underline"
+                        className="text-red-400 text-xs font-medium hover:underline hover:text-red-600"
                       >
                         Eliminar
                       </button>
@@ -348,14 +351,14 @@ export default function InsumosPage() {
                       }
                     }}
                     placeholder="0.00"
-                    className={`${INPUT_INLINE} text-right`}
+                    className={`${INPUT_INLINE} text-right font-mono`}
                   />
                 </td>
                 <td className="px-4 py-2 text-right">
                   <button
                     onClick={handleGuardarFila}
                     disabled={guardandoFila || !fila.nombre.trim() || !fila.unidad_medida}
-                    className="bg-pragma-accent text-white px-3 py-1.5 rounded text-xs font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
+                    className="bg-pragma-accent text-white px-3 py-1.5 rounded-md text-xs font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity"
                   >
                     {guardandoFila ? '…' : 'Guardar'}
                   </button>
@@ -363,9 +366,11 @@ export default function InsumosPage() {
               </tr>
 
               {errorFila && (
-                <tr className="bg-red-50">
-                  <td colSpan={5} className="px-4 py-2 text-xs text-red-600">
-                    {errorFila}
+                <tr>
+                  <td colSpan={5} className="px-4 py-2">
+                    <div className="bg-red-50 border border-red-200 rounded px-3 py-1.5 text-xs text-red-700">
+                      {errorFila}
+                    </div>
                   </td>
                 </tr>
               )}
@@ -376,7 +381,7 @@ export default function InsumosPage() {
 
       {/* ── Modal de edición ── */}
       {insumoEditando && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
             <h2 className="text-lg font-bold text-pragma-texto mb-5">Editar insumo</h2>
 
@@ -394,7 +399,6 @@ export default function InsumosPage() {
 
               <div>
                 <label className="block text-sm font-medium text-pragma-texto mb-1">Unidad</label>
-                {/* key={insumoEditando.id} remonta el componente al abrir un insumo distinto */}
                 <UnidadInput
                   key={insumoEditando.id}
                   value={form.unidad_medida}
@@ -439,9 +443,13 @@ export default function InsumosPage() {
               </div>
             </div>
 
-            {errorModal && <p className="mt-4 text-sm text-red-600">{errorModal}</p>}
+            {errorModal && (
+              <div className="mt-4 bg-red-50 border border-red-200 rounded-md px-3 py-2 text-sm text-red-700">
+                {errorModal}
+              </div>
+            )}
 
-            <div className="flex justify-end gap-3 mt-6">
+            <div className="flex justify-between mt-6">
               <button
                 onClick={cerrarModal}
                 disabled={guardandoModal}
@@ -452,7 +460,7 @@ export default function InsumosPage() {
               <button
                 onClick={handleGuardarModal}
                 disabled={guardandoModal}
-                className="bg-pragma-accent text-white px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-60"
+                className="bg-pragma-accent text-white px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-60"
               >
                 {guardandoModal ? 'Guardando…' : 'Guardar'}
               </button>

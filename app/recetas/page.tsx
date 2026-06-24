@@ -124,7 +124,6 @@ export default function RecetasPage() {
   const [ingredientesForm, setIngredientesForm] = useState<IngredienteForm[]>([]);
   const [errorModal, setErrorModal] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
-  // Incrementar fuerza el remount de UnidadInput al abrir el modal
   const [unidadKey, setUnidadKey] = useState(0);
 
   /* ── Precio calculado en tiempo real ── */
@@ -232,7 +231,7 @@ export default function RecetasPage() {
         <h1 className="text-2xl font-bold text-pragma-texto">Recetas (APU)</h1>
         <button
           onClick={abrirCrear}
-          className="bg-pragma-accent text-white px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
+          className="bg-pragma-accent text-white px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
         >
           + Nueva receta
         </button>
@@ -242,47 +241,51 @@ export default function RecetasPage() {
       {cargando ? (
         <p className="text-center text-pragma-textoClaro mt-20">Cargando...</p>
       ) : error ? (
-        <p className="text-center text-red-600 mt-20">{error}</p>
+        <div className="mx-auto max-w-md mt-20 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-red-700 text-sm text-center">
+          {error}
+        </div>
       ) : recetas.length === 0 ? (
         <p className="text-center text-pragma-textoClaro mt-20">
           No hay recetas todavía. Creá la primera con el botón de arriba.
         </p>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-pragma-superficie">
+        <div className="bg-white rounded-xl shadow-[0_4px_6px_-1px_rgba(28,20,16,0.08),0_2px_4px_-1px_rgba(28,20,16,0.05)] overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-pragma-superficie text-left">
-                <th className="px-4 py-3 font-medium text-pragma-textoClaro w-[45%]">Nombre</th>
-                <th className="px-4 py-3 font-medium text-pragma-textoClaro w-[18%]">Unidad</th>
-                <th className="px-4 py-3 font-medium text-pragma-textoClaro text-right w-[22%]">
+                <th className="px-4 py-3 text-xs font-medium text-pragma-textoClaro uppercase tracking-wider w-[45%]">Nombre</th>
+                <th className="px-4 py-3 text-xs font-medium text-pragma-textoClaro uppercase tracking-wider w-[18%]">Unidad</th>
+                <th className="px-4 py-3 text-xs font-medium text-pragma-textoClaro uppercase tracking-wider text-right w-[22%]">
                   Precio unitario
                 </th>
-                <th className="px-4 py-3 font-medium text-pragma-textoClaro text-right w-[15%]">
+                <th className="px-4 py-3 text-xs font-medium text-pragma-textoClaro uppercase tracking-wider text-right w-[15%]">
                   Acciones
                 </th>
               </tr>
             </thead>
             <tbody>
-              {recetas.map((receta) => (
+              {recetas.map((receta, i) => (
                 <tr
                   key={receta.id}
-                  className="border-t border-pragma-superficie/60 hover:bg-pragma-fondo/70 transition-colors"
+                  className={`border-t border-pragma-superficie/60 hover:bg-pragma-fondo/80 transition-colors ${
+                    i % 2 === 0 ? 'bg-white' : 'bg-pragma-fondo/40'
+                  }`}
                 >
                   <td className="px-4 py-3 font-medium text-pragma-texto">{receta.nombre}</td>
                   <td className="px-4 py-3 text-pragma-textoClaro">{receta.unidad_medida}</td>
-                  <td className="px-4 py-3 text-right text-pragma-texto tabular-nums">
+                  <td className="px-4 py-3 text-right text-pragma-totales font-mono font-semibold tabular-nums">
                     {formatPrecio(calcularPrecioReceta(receta))}
                   </td>
                   <td className="px-4 py-3 text-right space-x-4">
                     <button
                       onClick={() => abrirEditar(receta)}
-                      className="text-pragma-accent font-medium hover:underline"
+                      className="text-pragma-accent text-xs font-medium hover:underline"
                     >
                       Editar
                     </button>
                     <button
                       onClick={() => handleEliminar(receta)}
-                      className="text-red-500 font-medium hover:underline"
+                      className="text-red-400 text-xs font-medium hover:underline hover:text-red-600"
                     >
                       Eliminar
                     </button>
@@ -342,69 +345,87 @@ export default function RecetasPage() {
                 </div>
 
                 {ingredientesForm.length === 0 ? (
-                  <div className="text-sm text-pragma-textoClaro text-center py-6 bg-pragma-fondo rounded-md border border-pragma-superficie border-dashed">
+                  <div className="text-sm text-pragma-textoClaro text-center py-6 bg-pragma-fondo rounded-lg border border-pragma-superficie border-dashed">
                     Sin ingredientes todavía.
                   </div>
                 ) : (
-                  <div className="border border-pragma-superficie rounded-md overflow-hidden">
+                  <div className="bg-pragma-fondo rounded-lg border border-pragma-superficie overflow-hidden">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="bg-pragma-superficie/60">
-                          <th className="px-3 py-2 text-left font-medium text-pragma-textoClaro">
+                          <th className="px-3 py-2 text-left text-xs font-medium text-pragma-textoClaro uppercase tracking-wider">
                             Insumo
                           </th>
-                          <th className="px-3 py-2 text-right font-medium text-pragma-textoClaro w-32">
+                          <th className="px-3 py-2 text-right text-xs font-medium text-pragma-textoClaro uppercase tracking-wider w-24">
                             Cantidad
+                          </th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-pragma-textoClaro uppercase tracking-wider w-16">
+                            Unidad
+                          </th>
+                          <th className="px-3 py-2 text-right text-xs font-medium text-pragma-textoClaro uppercase tracking-wider w-28">
+                            Subtotal
                           </th>
                           <th className="px-3 py-2 w-10" />
                         </tr>
                       </thead>
                       <tbody>
-                        {ingredientesForm.map((ing, idx) => (
-                          <tr key={idx} className="border-t border-pragma-superficie/40">
-                            <td className="px-3 py-2">
-                              <select
-                                value={ing.insumo_id}
-                                onChange={(e) =>
-                                  actualizarIngrediente(idx, { insumo_id: e.target.value })
-                                }
-                                className={INPUT_ING}
-                              >
-                                <option value="">— Elegir insumo —</option>
-                                {insumos.map((insumo) => (
-                                  <option key={insumo.id} value={insumo.id}>
-                                    {insumo.nombre} ({insumo.unidad_medida})
-                                  </option>
-                                ))}
-                              </select>
-                            </td>
-                            <td className="px-3 py-2">
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.001"
-                                value={ing.cantidad === 0 ? '' : ing.cantidad}
-                                onChange={(e) =>
-                                  actualizarIngrediente(idx, {
-                                    cantidad:
-                                      e.target.value === '' ? 0 : Number(e.target.value),
-                                  })
-                                }
-                                placeholder="0"
-                                className={`${INPUT_ING} text-right`}
-                              />
-                            </td>
-                            <td className="px-3 py-2 text-center">
-                              <button
-                                onClick={() => quitarIngrediente(idx)}
-                                title="Quitar ingrediente"
-                                className="text-xl leading-none text-pragma-textoClaro hover:text-red-500 transition-colors"
-                              >
-                                ×
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
+                        {ingredientesForm.map((ing, idx) => {
+                          const insumoSel = insumos.find((i) => i.id === ing.insumo_id);
+                          const subtotalParcial = insumoSel
+                            ? ing.cantidad * insumoSel.precio_unitario
+                            : 0;
+                          return (
+                            <tr key={idx} className="border-t border-pragma-superficie/40 bg-white">
+                              <td className="px-3 py-2">
+                                <select
+                                  value={ing.insumo_id}
+                                  onChange={(e) =>
+                                    actualizarIngrediente(idx, { insumo_id: e.target.value })
+                                  }
+                                  className={INPUT_ING}
+                                >
+                                  <option value="">— Elegir insumo —</option>
+                                  {insumos.map((insumo) => (
+                                    <option key={insumo.id} value={insumo.id}>
+                                      {insumo.nombre}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td className="px-3 py-2">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.001"
+                                  value={ing.cantidad === 0 ? '' : ing.cantidad}
+                                  onChange={(e) =>
+                                    actualizarIngrediente(idx, {
+                                      cantidad:
+                                        e.target.value === '' ? 0 : Number(e.target.value),
+                                    })
+                                  }
+                                  placeholder="0"
+                                  className={`${INPUT_ING} text-right font-mono`}
+                                />
+                              </td>
+                              <td className="px-3 py-2 text-pragma-textoClaro text-xs">
+                                {insumoSel?.unidad_medida ?? '—'}
+                              </td>
+                              <td className="px-3 py-2 text-right font-mono text-pragma-totales text-xs font-semibold tabular-nums">
+                                {ing.insumo_id ? formatPrecio(subtotalParcial) : '—'}
+                              </td>
+                              <td className="px-3 py-2 text-center">
+                                <button
+                                  onClick={() => quitarIngrediente(idx)}
+                                  title="Quitar ingrediente"
+                                  className="text-xl leading-none text-pragma-textoClaro hover:text-red-500 transition-colors"
+                                >
+                                  ×
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -419,19 +440,23 @@ export default function RecetasPage() {
               </div>
 
               {/* Precio calculado en tiempo real */}
-              <div className="flex items-center justify-between bg-pragma-superficie/40 rounded-md px-4 py-3">
+              <div className="flex items-center justify-between bg-pragma-totales/10 border border-pragma-totales/20 rounded-lg px-4 py-3">
                 <span className="text-sm font-medium text-pragma-texto">
                   Precio unitario calculado
                 </span>
-                <span className="text-lg font-bold text-pragma-totales tabular-nums">
+                <span className="text-xl font-bold text-pragma-totales font-mono tabular-nums">
                   {formatPrecio(calcularPrecioForm())}
                 </span>
               </div>
             </div>
 
-            {errorModal && <p className="mt-4 text-sm text-red-600">{errorModal}</p>}
+            {errorModal && (
+              <div className="mt-4 bg-red-50 border border-red-200 rounded-md px-3 py-2 text-sm text-red-700">
+                {errorModal}
+              </div>
+            )}
 
-            <div className="flex justify-end gap-3 mt-6">
+            <div className="flex justify-between mt-6">
               <button
                 onClick={cerrarModal}
                 disabled={guardando}
@@ -442,7 +467,7 @@ export default function RecetasPage() {
               <button
                 onClick={handleGuardar}
                 disabled={guardando || !form.nombre.trim() || !form.unidad_medida}
-                className="bg-pragma-accent text-white px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-60"
+                className="bg-pragma-accent text-white px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-60"
               >
                 {guardando
                   ? 'Guardando…'

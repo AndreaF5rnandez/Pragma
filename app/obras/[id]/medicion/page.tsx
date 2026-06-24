@@ -22,15 +22,16 @@ function formatNum(v: number) {
 
 const INPUT_MODAL =
   'w-full border border-pragma-superficie rounded-md px-3 py-2 text-sm text-pragma-texto bg-white focus:outline-none focus:ring-2 focus:ring-pragma-accent';
+
+/* Inputs de medición: borde solo visible en focus, planilla limpia en reposo */
 const INPUT_FILA =
-  'w-full border border-pragma-superficie rounded px-2 py-1 text-sm text-pragma-texto bg-white focus:outline-none focus:ring-1 focus:ring-pragma-accent';
+  'w-full border border-transparent rounded px-2 py-1 text-sm text-pragma-texto bg-transparent focus:outline-none focus:border-pragma-superficie focus:bg-white focus:ring-1 focus:ring-pragma-accent transition-colors';
 
 /* ─── FilaForm ─────────────────────────────────────────────────────────────── */
 
 type FilaDim = number | '';
 type FilaForm = { descripcion: string; n: FilaDim; largo: FilaDim; ancho: FilaDim; alto: FilaDim };
 
-// n arranca en 1; largo/ancho/alto arrancan vacíos
 const FILA_INICIAL: FilaForm = { descripcion: '', n: 1, largo: '', ancho: '', alto: '' };
 
 function medicionAForm(m: Medicion): FilaForm {
@@ -138,11 +139,11 @@ function SeccionItem({
   }
 
   return (
-    <div className="border border-pragma-superficie rounded-lg mb-4 overflow-hidden bg-white shadow-sm">
+    <div className="border border-pragma-superficie rounded-xl mb-4 overflow-hidden bg-white shadow-[0_2px_9px_-5px_rgba(28,20,16,0.15)]">
       {/* Cabecera del ítem */}
-      <div className="bg-pragma-superficie/40 px-4 py-3 flex items-start justify-between gap-4 border-b border-pragma-superficie">
+      <div className="border-l-[3px] border-pragma-accent px-4 py-3 flex items-start justify-between gap-4 border-b border-pragma-superficie bg-white">
         <div className="min-w-0">
-          <p className="font-semibold text-pragma-texto truncate">{item.descripcion}</p>
+          <p className="font-medium text-pragma-texto truncate">{item.descripcion}</p>
           <p className="text-xs text-pragma-textoClaro mt-0.5">
             {item.receta.nombre} · {item.receta.unidad_medida}
           </p>
@@ -150,19 +151,19 @@ function SeccionItem({
         <div className="flex items-center gap-5 shrink-0">
           <div className="text-right">
             <p className="text-xs text-pragma-textoClaro">Cantidad</p>
-            <p className="text-sm font-medium text-pragma-texto tabular-nums">
+            <p className="text-sm font-medium text-pragma-texto font-mono tabular-nums">
               {formatNum(cantidadTotal)} {item.receta.unidad_medida}
             </p>
           </div>
           <div className="text-right">
             <p className="text-xs text-pragma-textoClaro">P. Unitario</p>
-            <p className="text-sm font-medium text-pragma-texto tabular-nums">
+            <p className="text-sm font-medium text-pragma-texto font-mono tabular-nums">
               {formatPrecio(precioUnitario)}
             </p>
           </div>
           <div className="text-right">
             <p className="text-xs text-pragma-textoClaro">Subtotal</p>
-            <p className="text-sm font-bold text-pragma-totales tabular-nums">
+            <p className="text-sm font-bold text-pragma-totales font-mono tabular-nums">
               {formatPrecio(subtotal)}
             </p>
           </div>
@@ -175,7 +176,7 @@ function SeccionItem({
             </button>
             <button
               onClick={onEliminar}
-              className="text-xs text-red-500 font-medium hover:underline"
+              className="text-xs text-red-400 font-medium hover:underline hover:text-red-600"
             >
               Eliminar
             </button>
@@ -190,12 +191,12 @@ function SeccionItem({
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-pragma-fondo border-b border-pragma-superficie">
-              <th className="px-4 py-2 text-left font-medium text-pragma-textoClaro">Descripción</th>
-              <th className="px-3 py-2 text-right font-medium text-pragma-textoClaro w-20">N</th>
-              <th className="px-3 py-2 text-right font-medium text-pragma-textoClaro w-20">Largo</th>
-              <th className="px-3 py-2 text-right font-medium text-pragma-textoClaro w-20">Ancho</th>
-              <th className="px-3 py-2 text-right font-medium text-pragma-textoClaro w-20">Alto</th>
-              <th className="px-3 py-2 text-right font-medium text-pragma-textoClaro w-24">Cantidad</th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-pragma-textoClaro uppercase tracking-wider">Descripción</th>
+              <th className="px-3 py-2 text-right text-xs font-medium text-pragma-textoClaro uppercase tracking-wider w-20">N</th>
+              <th className="px-3 py-2 text-right text-xs font-medium text-pragma-textoClaro uppercase tracking-wider w-20">Largo</th>
+              <th className="px-3 py-2 text-right text-xs font-medium text-pragma-textoClaro uppercase tracking-wider w-20">Ancho</th>
+              <th className="px-3 py-2 text-right text-xs font-medium text-pragma-textoClaro uppercase tracking-wider w-20">Alto</th>
+              <th className="px-3 py-2 text-right text-xs font-medium text-pragma-textoClaro uppercase tracking-wider w-24">Cantidad</th>
               <th className="px-3 py-2 w-10" />
             </tr>
           </thead>
@@ -238,7 +239,7 @@ function SeccionItem({
                           }))
                         }
                         onKeyDown={onKeyDownEdicion}
-                        className={`${INPUT_FILA} text-right`}
+                        className={`${INPUT_FILA} text-right font-mono`}
                       />
                     </td>
                     <td className="px-3 py-1.5">
@@ -254,7 +255,7 @@ function SeccionItem({
                           }))
                         }
                         onKeyDown={onKeyDownEdicion}
-                        className={`${INPUT_FILA} text-right`}
+                        className={`${INPUT_FILA} text-right font-mono`}
                       />
                     </td>
                     <td className="px-3 py-1.5">
@@ -270,7 +271,7 @@ function SeccionItem({
                           }))
                         }
                         onKeyDown={onKeyDownEdicion}
-                        className={`${INPUT_FILA} text-right`}
+                        className={`${INPUT_FILA} text-right font-mono`}
                       />
                     </td>
                     <td className="px-3 py-1.5">
@@ -286,10 +287,10 @@ function SeccionItem({
                           }))
                         }
                         onKeyDown={onKeyDownEdicion}
-                        className={`${INPUT_FILA} text-right`}
+                        className={`${INPUT_FILA} text-right font-mono`}
                       />
                     </td>
-                    <td className="px-3 py-2 text-right font-medium text-pragma-textoClaro tabular-nums">
+                    <td className="px-3 py-2 text-right font-mono font-medium text-pragma-textoClaro tabular-nums">
                       {formatNum(m.cantidad_calculada)}
                     </td>
                     <td className="px-3 py-1.5 text-center">
@@ -313,17 +314,17 @@ function SeccionItem({
                   className="border-b border-pragma-superficie/40 hover:bg-pragma-fondo/50 transition-colors cursor-pointer"
                 >
                   <td className="px-4 py-2 text-pragma-texto">{m.descripcion}</td>
-                  <td className="px-3 py-2 text-right text-pragma-textoClaro tabular-nums">{m.n}</td>
-                  <td className="px-3 py-2 text-right text-pragma-textoClaro tabular-nums">
+                  <td className="px-3 py-2 text-right text-pragma-textoClaro font-mono tabular-nums">{m.n}</td>
+                  <td className="px-3 py-2 text-right text-pragma-textoClaro font-mono tabular-nums">
                     {m.largo ?? '—'}
                   </td>
-                  <td className="px-3 py-2 text-right text-pragma-textoClaro tabular-nums">
+                  <td className="px-3 py-2 text-right text-pragma-textoClaro font-mono tabular-nums">
                     {m.ancho ?? '—'}
                   </td>
-                  <td className="px-3 py-2 text-right text-pragma-textoClaro tabular-nums">
+                  <td className="px-3 py-2 text-right text-pragma-textoClaro font-mono tabular-nums">
                     {m.alto ?? '—'}
                   </td>
-                  <td className="px-3 py-2 text-right font-medium text-pragma-texto tabular-nums">
+                  <td className="px-3 py-2 text-right font-mono font-semibold text-pragma-texto tabular-nums">
                     {formatNum(m.cantidad_calculada)}
                   </td>
                   <td className="px-3 py-2 text-center">
@@ -371,7 +372,7 @@ function SeccionItem({
                   }
                   onKeyDown={onKeyDownNueva}
                   placeholder="1"
-                  className={`${INPUT_FILA} text-right`}
+                  className={`${INPUT_FILA} text-right font-mono`}
                 />
               </td>
               <td className="px-3 py-1.5">
@@ -388,7 +389,7 @@ function SeccionItem({
                   }
                   onKeyDown={onKeyDownNueva}
                   placeholder=""
-                  className={`${INPUT_FILA} text-right`}
+                  className={`${INPUT_FILA} text-right font-mono`}
                 />
               </td>
               <td className="px-3 py-1.5">
@@ -405,7 +406,7 @@ function SeccionItem({
                   }
                   onKeyDown={onKeyDownNueva}
                   placeholder=""
-                  className={`${INPUT_FILA} text-right`}
+                  className={`${INPUT_FILA} text-right font-mono`}
                 />
               </td>
               <td className="px-3 py-1.5">
@@ -422,7 +423,7 @@ function SeccionItem({
                   }
                   onKeyDown={onKeyDownNueva}
                   placeholder=""
-                  className={`${INPUT_FILA} text-right`}
+                  className={`${INPUT_FILA} text-right font-mono`}
                 />
               </td>
               <td className="px-3 py-1.5" />
@@ -439,9 +440,11 @@ function SeccionItem({
             </tr>
 
             {errorFila && (
-              <tr className="bg-red-50">
-                <td colSpan={7} className="px-4 py-1.5 text-xs text-red-600">
-                  {errorFila}
+              <tr>
+                <td colSpan={7} className="px-4 py-1.5">
+                  <div className="bg-red-50 border border-red-200 rounded px-3 py-1.5 text-xs text-red-700">
+                    {errorFila}
+                  </div>
                 </td>
               </tr>
             )}
@@ -548,7 +551,7 @@ function ContenidoRubro({
         <h2 className="text-xl font-bold text-pragma-texto">{rubroNombre}</h2>
         <button
           onClick={abrirCrear}
-          className="bg-pragma-accent text-white px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
+          className="bg-pragma-accent text-white px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
         >
           + Nuevo ítem
         </button>
@@ -557,7 +560,9 @@ function ContenidoRubro({
       {cargando ? (
         <p className="text-center text-pragma-textoClaro mt-16">Cargando ítems…</p>
       ) : error ? (
-        <p className="text-center text-red-600 mt-16">{error}</p>
+        <div className="mx-auto max-w-md mt-16 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-red-700 text-sm text-center">
+          {error}
+        </div>
       ) : items.length === 0 ? (
         <p className="text-center text-pragma-textoClaro mt-16">
           No hay ítems en este rubro. Creá el primero con el botón de arriba.
@@ -577,9 +582,9 @@ function ContenidoRubro({
 
           {/* Subtotal del rubro */}
           <div className="flex justify-end mt-2 mb-4">
-            <div className="bg-pragma-totales/10 border border-pragma-totales/20 rounded-lg px-5 py-3 text-right">
+            <div className="bg-pragma-totales/10 border border-pragma-totales/20 rounded-xl px-5 py-3 text-right">
               <p className="text-xs text-pragma-textoClaro mb-0.5">Subtotal {rubroNombre}</p>
-              <p className="text-xl font-bold text-pragma-totales tabular-nums">
+              <p className="text-xl font-bold text-pragma-totales font-mono tabular-nums">
                 {formatPrecio(subtotalRubro)}
               </p>
             </div>
@@ -629,9 +634,13 @@ function ContenidoRubro({
               </div>
             </div>
 
-            {errorModal && <p className="mt-4 text-sm text-red-600">{errorModal}</p>}
+            {errorModal && (
+              <div className="mt-4 bg-red-50 border border-red-200 rounded-md px-3 py-2 text-sm text-red-700">
+                {errorModal}
+              </div>
+            )}
 
-            <div className="flex justify-end gap-3 mt-6">
+            <div className="flex justify-between mt-6">
               <button
                 onClick={() => {
                   setModalAbierto(false);
@@ -647,7 +656,7 @@ function ContenidoRubro({
                 disabled={
                   guardandoModal || !formItem.descripcion.trim() || !formItem.receta_id
                 }
-                className="bg-pragma-accent text-white px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-60"
+                className="bg-pragma-accent text-white px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-60"
               >
                 {guardandoModal
                   ? 'Guardando…'
@@ -755,21 +764,21 @@ export default function MedicionPage() {
 
   return (
     <div className="flex flex-col min-h-full">
-      {/* ── Barra de navegación superior ── */}
-      <header className="sticky top-0 z-10 bg-white border-b border-pragma-superficie px-6 h-12 flex items-center gap-4 shrink-0">
-        <span className="font-bold text-pragma-texto text-sm truncate flex-1">
+      {/* ── Barra de navegación superior con tabs ── */}
+      <header className="sticky top-0 z-10 bg-white border-b border-pragma-superficie px-6 flex items-stretch gap-4 shrink-0" style={{ height: '48px' }}>
+        <span className="font-semibold text-pragma-texto text-sm truncate flex-1 flex items-center">
           {obraNombre || '…'}
         </span>
-        <nav className="flex gap-1">
+        <nav className="flex h-full">
           <Link
             href={`/obras/${obraId}/medicion`}
-            className="px-4 py-1.5 rounded text-sm font-medium bg-pragma-accent text-white"
+            className="px-5 flex items-center text-sm font-medium border-b-2 border-pragma-accent text-pragma-texto"
           >
             Cómputo
           </Link>
           <Link
             href={`/obras/${obraId}/presupuesto`}
-            className="px-4 py-1.5 rounded text-sm font-medium text-pragma-textoClaro hover:text-pragma-texto hover:bg-pragma-fondo transition-colors"
+            className="px-5 flex items-center text-sm font-medium border-b-2 border-transparent text-pragma-textoClaro hover:text-pragma-texto transition-colors"
           >
             Presupuesto
           </Link>
@@ -778,143 +787,146 @@ export default function MedicionPage() {
 
       {/* ── Contenido de dos paneles ── */}
       <div className="flex flex-1">
-      {/* ── Panel izquierdo: rubros (sticky bajo el header) ── */}
-      <aside className="w-[260px] shrink-0 bg-pragma-superficie border-r border-pragma-superficie flex flex-col sticky top-12 h-[calc(100vh-3rem)] overflow-hidden">
-        {/* Lista de rubros */}
-        {cargandoRubros ? (
-          <div className="flex-1 flex items-center justify-center">
-            <p className="text-sm text-pragma-textoClaro">Cargando…</p>
-          </div>
-        ) : errorRubros ? (
-          <div className="flex-1 flex items-center justify-center px-4">
-            <p className="text-sm text-red-500 text-center">{errorRubros}</p>
-          </div>
-        ) : rubros.length === 0 && !agregandoRubro ? (
-          <div className="flex-1 flex flex-col items-center justify-center px-5 text-center">
-            <p className="text-sm font-medium text-pragma-texto mb-2">
-              Creá tu primer rubro para empezar
-            </p>
-            <p className="text-xs text-pragma-textoClaro leading-relaxed">
-              Ej: Excavación, Hormigón Armado, Mampostería
-            </p>
-          </div>
-        ) : (
-          <ul className="flex-1 overflow-y-auto py-1">
-            {rubros.map((rubro) => {
-              const activo = rubro.id === rubroSeleccionadoId;
-              return (
-                <li key={rubro.id} className="group flex items-stretch">
-                  <button
-                    onClick={() => setRubroSeleccionadoId(rubro.id)}
-                    className={`flex-1 min-w-0 text-left px-4 py-2.5 flex items-center justify-between gap-2 transition-colors ${
-                      activo
-                        ? 'bg-pragma-accent text-white'
-                        : 'text-pragma-texto hover:bg-black/5'
-                    }`}
-                  >
-                    <span className="text-sm font-medium truncate">{rubro.nombre}</span>
-                    <span
-                      className={`text-xs tabular-nums shrink-0 ${
-                        activo ? 'text-white/75' : 'text-pragma-textoClaro'
-                      }`}
-                    >
-                      {subtotales[rubro.id] !== undefined
-                        ? formatPrecio(subtotales[rubro.id])
-                        : '—'}
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => handleEliminarRubro(rubro)}
-                    title="Eliminar rubro"
-                    className={`px-2 opacity-0 group-hover:opacity-100 transition-opacity text-lg leading-none ${
-                      activo
-                        ? 'text-white/60 hover:text-white'
-                        : 'text-pragma-textoClaro hover:text-red-500'
-                    }`}
-                  >
-                    ×
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-
-        {/* Footer: agregar rubro */}
-        <div className="border-t border-black/10 p-3 shrink-0">
-          {agregandoRubro ? (
-            <div>
-              <input
-                ref={nuevoRubroRef}
-                type="text"
-                value={nuevoRubroNombre}
-                onChange={(e) => setNuevoRubroNombre(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') { e.preventDefault(); handleCrearRubro(); }
-                  if (e.key === 'Escape') {
-                    setAgregandoRubro(false);
-                    setNuevoRubroNombre('');
-                    setErrorNuevoRubro(null);
-                  }
-                }}
-                placeholder="Nombre del rubro…"
-                disabled={guardandoRubro}
-                className="w-full border border-pragma-accent/40 rounded px-2 py-1.5 text-sm text-pragma-texto bg-white focus:outline-none focus:ring-1 focus:ring-pragma-accent"
-              />
-              {errorNuevoRubro && (
-                <p className="text-xs text-red-600 mt-1">{errorNuevoRubro}</p>
-              )}
-              <div className="flex gap-2 mt-2">
-                <button
-                  onClick={handleCrearRubro}
-                  disabled={guardandoRubro || !nuevoRubroNombre.trim()}
-                  className="flex-1 bg-pragma-accent text-white text-xs py-1.5 rounded font-medium hover:opacity-90 disabled:opacity-40 transition-opacity"
-                >
-                  {guardandoRubro ? '…' : 'Crear'}
-                </button>
-                <button
-                  onClick={() => {
-                    setAgregandoRubro(false);
-                    setNuevoRubroNombre('');
-                    setErrorNuevoRubro(null);
-                  }}
-                  className="flex-1 text-xs py-1.5 rounded font-medium text-pragma-textoClaro hover:text-pragma-texto transition-colors"
-                >
-                  Cancelar
-                </button>
-              </div>
+        {/* ── Panel izquierdo: rubros ── */}
+        <aside className="w-[260px] shrink-0 bg-pragma-superficie border-r border-pragma-superficie/60 flex flex-col sticky top-12 h-[calc(100vh-3rem)] overflow-hidden">
+          {/* Lista de rubros */}
+          {cargandoRubros ? (
+            <div className="flex-1 flex items-center justify-center">
+              <p className="text-sm text-pragma-textoClaro">Cargando…</p>
+            </div>
+          ) : errorRubros ? (
+            <div className="flex-1 flex items-center justify-center px-4">
+              <p className="text-sm text-red-500 text-center">{errorRubros}</p>
+            </div>
+          ) : rubros.length === 0 && !agregandoRubro ? (
+            <div className="flex-1 flex flex-col items-center justify-center px-5 text-center">
+              <p className="text-sm font-medium text-pragma-texto mb-2">
+                Creá tu primer rubro para empezar
+              </p>
+              <p className="text-xs text-pragma-textoClaro leading-relaxed">
+                Ej: Excavación, Hormigón Armado, Mampostería
+              </p>
             </div>
           ) : (
-            <button
-              onClick={() => setAgregandoRubro(true)}
-              className="w-full text-sm text-pragma-accent font-medium hover:underline text-left py-0.5"
-            >
-              + Agregar rubro
-            </button>
+            <ul className="flex-1 overflow-y-auto py-1">
+              {rubros.map((rubro) => {
+                const activo = rubro.id === rubroSeleccionadoId;
+                return (
+                  <li
+                    key={rubro.id}
+                    className={`group flex items-stretch transition-colors border-l-[3px] ${
+                      activo ? 'border-pragma-accent' : 'border-transparent'
+                    }`}
+                  >
+                    <button
+                      onClick={() => setRubroSeleccionadoId(rubro.id)}
+                      className={`flex-1 min-w-0 text-left px-4 py-3 flex items-center justify-between gap-2 transition-colors ${
+                        activo
+                          ? 'bg-white/40 text-pragma-texto'
+                          : 'text-pragma-texto hover:bg-black/5'
+                      }`}
+                    >
+                      <span className="text-sm font-medium truncate">{rubro.nombre}</span>
+                      <span
+                        className={`text-xs font-mono tabular-nums shrink-0 ${
+                          activo ? 'text-pragma-totales font-semibold' : 'text-pragma-textoClaro'
+                        }`}
+                      >
+                        {subtotales[rubro.id] !== undefined
+                          ? formatPrecio(subtotales[rubro.id])
+                          : '—'}
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => handleEliminarRubro(rubro)}
+                      title="Eliminar rubro"
+                      className="px-2 opacity-0 group-hover:opacity-100 transition-opacity text-lg leading-none text-pragma-textoClaro hover:text-red-500"
+                    >
+                      ×
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
           )}
-        </div>
-      </aside>
 
-      {/* ── Panel derecho: ítems y mediciones ── */}
-      <section className="flex-1 bg-pragma-fondo min-h-screen">
-        {rubroSeleccionado === null ? (
-          <div className="flex items-center justify-center h-64">
-            <p className="text-pragma-textoClaro text-sm">
-              {rubros.length === 0 && !cargandoRubros
-                ? 'Creá un rubro en el panel izquierdo para comenzar.'
-                : 'Seleccioná un rubro para ver sus ítems.'}
-            </p>
+          {/* Footer: agregar rubro */}
+          <div className="border-t border-black/10 p-3 shrink-0">
+            {agregandoRubro ? (
+              <div>
+                <input
+                  ref={nuevoRubroRef}
+                  type="text"
+                  value={nuevoRubroNombre}
+                  onChange={(e) => setNuevoRubroNombre(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); handleCrearRubro(); }
+                    if (e.key === 'Escape') {
+                      setAgregandoRubro(false);
+                      setNuevoRubroNombre('');
+                      setErrorNuevoRubro(null);
+                    }
+                  }}
+                  placeholder="Nombre del rubro…"
+                  disabled={guardandoRubro}
+                  className="w-full border border-pragma-accent/40 rounded-md px-2 py-1.5 text-sm text-pragma-texto bg-white focus:outline-none focus:ring-1 focus:ring-pragma-accent"
+                />
+                {errorNuevoRubro && (
+                  <div className="mt-1 bg-red-50 border border-red-200 rounded px-2 py-1 text-xs text-red-700">
+                    {errorNuevoRubro}
+                  </div>
+                )}
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={handleCrearRubro}
+                    disabled={guardandoRubro || !nuevoRubroNombre.trim()}
+                    className="flex-1 bg-pragma-accent text-white text-xs py-1.5 rounded-md font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity"
+                  >
+                    {guardandoRubro ? '…' : 'Crear'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setAgregandoRubro(false);
+                      setNuevoRubroNombre('');
+                      setErrorNuevoRubro(null);
+                    }}
+                    className="flex-1 text-xs py-1.5 rounded-md font-medium text-pragma-textoClaro hover:text-pragma-texto transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setAgregandoRubro(true)}
+                className="w-full text-sm text-pragma-accent font-medium hover:underline text-left py-0.5"
+              >
+                + Agregar rubro
+              </button>
+            )}
           </div>
-        ) : (
-          <ContenidoRubro
-            key={rubroSeleccionadoId!}
-            rubroId={rubroSeleccionadoId!}
-            rubroNombre={rubroSeleccionado.nombre}
-            recetas={recetas}
-            onSubtotalChange={handleSubtotalChange}
-          />
-        )}
-      </section>
+        </aside>
+
+        {/* ── Panel derecho: ítems y mediciones ── */}
+        <section className="flex-1 bg-pragma-fondo min-h-screen">
+          {rubroSeleccionado === null ? (
+            <div className="flex items-center justify-center h-64">
+              <p className="text-pragma-textoClaro text-sm">
+                {rubros.length === 0 && !cargandoRubros
+                  ? 'Creá un rubro en el panel izquierdo para comenzar.'
+                  : 'Seleccioná un rubro para ver sus ítems.'}
+              </p>
+            </div>
+          ) : (
+            <ContenidoRubro
+              key={rubroSeleccionadoId!}
+              rubroId={rubroSeleccionadoId!}
+              rubroNombre={rubroSeleccionado.nombre}
+              recetas={recetas}
+              onSubtotalChange={handleSubtotalChange}
+            />
+          )}
+        </section>
       </div>
     </div>
   );
