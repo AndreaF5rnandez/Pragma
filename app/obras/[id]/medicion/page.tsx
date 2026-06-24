@@ -742,7 +742,9 @@ export default function MedicionPage() {
             background: 'rgba(255, 255, 255, 0.45)',
             backdropFilter: 'blur(24px)',
             WebkitBackdropFilter: 'blur(24px)',
-            borderRight: '1px solid rgba(255, 255, 255, 0.50)',
+            borderLeft: '1px solid rgba(0, 0, 0, 0.10)',
+            borderRight: '1px solid rgba(0, 0, 0, 0.08)',
+            boxShadow: '-4px 0 16px rgba(0,0,0,0.06)',
           }}
         >
           {/* Header del panel */}
@@ -865,7 +867,7 @@ export default function MedicionPage() {
                           className="text-xs font-mono tabular-nums shrink-0"
                           style={{ color: activo ? '#2A3300' : '#9CA3AF' }}
                         >
-                          {totalRubro ? formatPrecio(totalRubro) : '—'}
+                          {totalRubro !== undefined ? formatPrecio(totalRubro) : '—'}
                         </span>
                       </button>
                       <button
