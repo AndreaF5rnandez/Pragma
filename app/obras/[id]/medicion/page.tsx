@@ -474,6 +474,21 @@ function ContenidoRubro({
 }) {
   const { items, cargando, error, crearItem, actualizarItem, eliminarItem } = useItems(rubroId);
   const [subtotalesPorItem, setSubtotalesPorItem] = useState<Record<string, number>>({});
+
+  // Sincroniza el mapa con la lista real de ítems:
+  // inicializa en 0 los nuevos, elimina los que ya no existen.
+  useEffect(() => {
+    if (items.length === 0) return;
+    setSubtotalesPorItem((prev) => {
+      const itemIds = new Set(items.map((i) => i.id));
+      const next: Record<string, number> = {};
+      for (const id of itemIds) {
+        next[id] = prev[id] ?? 0;
+      }
+      return next;
+    });
+  }, [items]);
+
   const subtotalRubro = Object.values(subtotalesPorItem).reduce((a, b) => a + b, 0);
 
   const handleSubtotalItem = useCallback((itemId: string, subtotal: number) => {
