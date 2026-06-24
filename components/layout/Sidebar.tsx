@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
 /* ── Íconos SVG con stroke ────────────────────────────────────────────────── */
 
@@ -45,6 +46,13 @@ const NAV = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    router.push('/login');
+    router.refresh();
+  }
 
   return (
     <aside
@@ -102,8 +110,22 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="px-5 py-4">
-        <p className="text-xs" style={{ color: '#9CA3AF' }}>Pragma v1.0</p>
+      <div className="px-4 py-4 space-y-2">
+        <button
+          onClick={handleSignOut}
+          className="w-full flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-xs font-medium transition-colors hover:bg-black/[0.04]"
+          style={{ color: '#9CA3AF' }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#6B7080'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#9CA3AF'; }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+          Cerrar sesión
+        </button>
+        <p className="text-xs px-3.5" style={{ color: '#9CA3AF' }}>Pragma v1.0</p>
       </div>
     </aside>
   );
