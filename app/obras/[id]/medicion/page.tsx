@@ -614,21 +614,23 @@ function ContenidoRubro({
             />
           ))}
 
-          {/* Subtotal del rubro */}
-          <div className="flex justify-end mt-2 mb-4">
-            <div
-              className="rounded-2xl px-5 py-3 text-right"
-              style={{
-                background: 'rgba(200,230,76,0.12)',
-                border: '1px solid rgba(200,230,76,0.30)',
-              }}
-            >
-              <p className="text-xs mb-0.5" style={{ color: '#6B7080' }}>Subtotal {rubroNombre}</p>
-              <p className="text-xl font-bold font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
-                {formatPrecio(subtotalRubro)}
-              </p>
+          {/* Subtotal del rubro — solo se muestra cuando hay al menos un precio asignado */}
+          {subtotalRubro > 0 && (
+            <div className="flex justify-end mt-2 mb-4">
+              <div
+                className="rounded-2xl px-5 py-3 text-right"
+                style={{
+                  background: 'rgba(200,230,76,0.12)',
+                  border: '1px solid rgba(200,230,76,0.30)',
+                }}
+              >
+                <p className="text-xs mb-0.5" style={{ color: '#6B7080' }}>Subtotal {rubroNombre}</p>
+                <p className="text-xl font-bold font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
+                  {formatPrecio(subtotalRubro)}
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </>
       )}
 
@@ -759,6 +761,8 @@ export default function MedicionPage() {
   const [guardandoRubro, setGuardandoRubro] = useState(false);
   const [errorNuevoRubro, setErrorNuevoRubro] = useState<string | null>(null);
   const nuevoRubroRef = useRef<HTMLInputElement>(null);
+  // PROBLEMA 2: ref para hacer scroll al input cuando aparece
+  const listaRubrosRef = useRef<HTMLUListElement>(null);
 
   /* Cargar nombre de la obra */
   useEffect(() => {
@@ -779,9 +783,13 @@ export default function MedicionPage() {
     }
   }, [cargandoRubros, rubros, rubroSeleccionadoId]);
 
-  /* Foco al abrir el input de nuevo rubro */
+  /* Foco al abrir el input de nuevo rubro + scroll al top de la lista */
   useEffect(() => {
     if (agregandoRubro) {
+      // Scroll al top para que el input sea visible
+      if (listaRubrosRef.current) {
+        listaRubrosRef.current.scrollTop = 0;
+      }
       setTimeout(() => nuevoRubroRef.current?.focus(), 0);
     }
   }, [agregandoRubro]);
@@ -830,10 +838,12 @@ export default function MedicionPage() {
   const rubroSeleccionado = rubros.find((r) => r.id === rubroSeleccionadoId) ?? null;
 
   return (
-    <div className="flex flex-col min-h-full">
+    /* PROBLEMA 3: h-full para que el layout encaje dentro del <main> sin causar scroll global */
+    <div className="flex flex-col h-full">
+
       {/* ── Barra de navegación superior con tabs ── */}
       <header
-        className="sticky top-0 z-10 px-6 flex items-stretch gap-4 shrink-0"
+        className="shrink-0 z-10 px-6 flex items-stretch gap-4"
         style={{
           height: '48px',
           background: 'rgba(255, 255, 255, 0.80)',
@@ -863,14 +873,17 @@ export default function MedicionPage() {
         </nav>
       </header>
 
-      {/* ── Contenido de dos paneles ── */}
-      <div className="flex flex-1">
-        {/* ── Panel izquierdo: rubros ── */}
+      {/* ── Contenido de dos paneles — PROBLEMA 3: min-h-0 para que flexbox controle la altura ── */}
+      <div className="flex flex-1 min-h-0">
+
+        {/* ── Panel izquierdo: rubros ──
+            PROBLEMA 3: overflow-hidden en el aside, scroll solo en la <ul>
+            PROBLEMA 4: fondo #F8F4EE (pragma-fondo) + borde derecho #E4DDCC (pragma-superficie) */}
         <aside
-          className="w-[260px] shrink-0 flex flex-col sticky top-12 h-[calc(100vh-3rem)] overflow-hidden backdrop-blur-[20px]"
+          className="w-[260px] shrink-0 flex flex-col overflow-hidden"
           style={{
-            background: 'rgba(255, 255, 255, 0.60)',
-            borderRight: '1px solid rgba(0, 0, 0, 0.08)',
+            background: '#F8F4EE',
+            borderRight: '1px solid #E4DDCC',
           }}
         >
           {/* Header del panel izquierdo */}
@@ -890,7 +903,7 @@ export default function MedicionPage() {
             </button>
           </div>
 
-          {/* Lista de rubros */}
+          {/* Lista de rubros — scroll independiente */}
           {cargandoRubros ? (
             <div className="flex-1 flex items-center justify-center">
               <p className="text-sm" style={{ color: '#6B7080' }}>Cargando…</p>
@@ -899,19 +912,84 @@ export default function MedicionPage() {
             <div className="flex-1 flex items-center justify-center px-4">
               <p className="text-sm text-center" style={{ color: '#EF4444' }}>{errorRubros}</p>
             </div>
-          ) : rubros.length === 0 && !agregandoRubro ? (
-            <div className="flex-1 flex flex-col items-center justify-center px-5 text-center">
-              <p className="text-sm font-medium mb-2" style={{ color: '#1A1A2E' }}>
-                Creá tu primer rubro para empezar
-              </p>
-              <p className="text-xs leading-relaxed" style={{ color: '#6B7080' }}>
-                Ej: Excavación, Hormigón Armado, Mampostería
-              </p>
-            </div>
           ) : (
-            <ul className="flex-1 overflow-y-auto py-1">
+            /* PROBLEMA 2: el input de nuevo rubro va DENTRO de la <ul>, al principio,
+               así siempre queda visible sin importar cuántos rubros haya */
+            <ul className="flex-1 overflow-y-auto py-1" ref={listaRubrosRef}>
+
+              {/* Input de nuevo rubro — siempre visible al top */}
+              {agregandoRubro && (
+                <li
+                  key="__nuevo-rubro"
+                  className="px-3 py-2"
+                  style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}
+                >
+                  <input
+                    ref={nuevoRubroRef}
+                    type="text"
+                    value={nuevoRubroNombre}
+                    onChange={(e) => setNuevoRubroNombre(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') { e.preventDefault(); handleCrearRubro(); }
+                      if (e.key === 'Escape') {
+                        setAgregandoRubro(false);
+                        setNuevoRubroNombre('');
+                        setErrorNuevoRubro(null);
+                      }
+                    }}
+                    placeholder="Nombre del rubro…"
+                    disabled={guardandoRubro}
+                    className="w-full border border-black/[0.12] rounded-[10px] px-2.5 py-2 text-sm text-[#1A1A2E] bg-white/60 focus:outline-none focus:border-[#C8E64C] focus:shadow-[0_0_0_3px_rgba(200,230,76,0.2)] transition-all placeholder:text-[#9CA3AF]"
+                  />
+                  {errorNuevoRubro && (
+                    <div
+                      className="mt-1 rounded-[8px] px-2 py-1 text-xs"
+                      style={{ background: '#FEE2E2', color: '#EF4444' }}
+                    >
+                      {errorNuevoRubro}
+                    </div>
+                  )}
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={handleCrearRubro}
+                      disabled={guardandoRubro || !nuevoRubroNombre.trim()}
+                      className="flex-1 bg-[#C8E64C] text-[#2A3300] hover:bg-[#B8D63C] text-xs py-1.5 rounded-full font-semibold disabled:opacity-40 transition-colors"
+                    >
+                      {guardandoRubro ? '…' : 'Crear'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setAgregandoRubro(false);
+                        setNuevoRubroNombre('');
+                        setErrorNuevoRubro(null);
+                      }}
+                      className="flex-1 text-xs py-1.5 rounded-full font-medium transition-colors"
+                      style={{ color: '#6B7080' }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </li>
+              )}
+
+              {/* Estado vacío */}
+              {rubros.length === 0 && !agregandoRubro && (
+                <li className="flex flex-col items-center justify-center px-5 py-16 text-center">
+                  <p className="text-sm font-medium mb-1" style={{ color: '#1A1A2E' }}>
+                    Creá tu primer rubro para empezar
+                  </p>
+                  <p className="text-xs leading-relaxed" style={{ color: '#6B7080' }}>
+                    Ej: Excavación, Hormigón Armado, Mampostería
+                  </p>
+                </li>
+              )}
+
+              {/* Lista de rubros */}
               {rubros.map((rubro) => {
                 const activo = rubro.id === rubroSeleccionadoId;
+                /* PROBLEMA 1: mostrar '—' cuando el subtotal es 0 o undefined
+                   (significa que el rubro no tiene precios asignados todavía) */
+                const totalRubro = subtotales[rubro.id];
                 return (
                   <li
                     key={rubro.id}
@@ -936,9 +1014,7 @@ export default function MedicionPage() {
                         className="text-xs font-mono tabular-nums shrink-0"
                         style={{ color: activo ? '#1A1A2E' : '#9CA3AF', fontWeight: activo ? 600 : 400 }}
                       >
-                        {subtotales[rubro.id] !== undefined
-                          ? formatPrecio(subtotales[rubro.id])
-                          : '—'}
+                        {totalRubro ? formatPrecio(totalRubro) : '—'}
                       </span>
                     </button>
                     <button
@@ -954,65 +1030,17 @@ export default function MedicionPage() {
               })}
             </ul>
           )}
-
-          {/* Footer: formulario de nuevo rubro */}
-          {agregandoRubro && (
-            <div className="p-3 shrink-0" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-              <input
-                ref={nuevoRubroRef}
-                type="text"
-                value={nuevoRubroNombre}
-                onChange={(e) => setNuevoRubroNombre(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') { e.preventDefault(); handleCrearRubro(); }
-                  if (e.key === 'Escape') {
-                    setAgregandoRubro(false);
-                    setNuevoRubroNombre('');
-                    setErrorNuevoRubro(null);
-                  }
-                }}
-                placeholder="Nombre del rubro…"
-                disabled={guardandoRubro}
-                className="w-full border border-black/[0.12] rounded-[10px] px-2.5 py-2 text-sm text-[#1A1A2E] bg-white/60 focus:outline-none focus:border-[#C8E64C] focus:shadow-[0_0_0_3px_rgba(200,230,76,0.2)] transition-all placeholder:text-[#9CA3AF]"
-              />
-              {errorNuevoRubro && (
-                <div
-                  className="mt-1 rounded-[8px] px-2 py-1 text-xs"
-                  style={{ background: '#FEE2E2', color: '#EF4444' }}
-                >
-                  {errorNuevoRubro}
-                </div>
-              )}
-              <div className="flex gap-2 mt-2">
-                <button
-                  onClick={handleCrearRubro}
-                  disabled={guardandoRubro || !nuevoRubroNombre.trim()}
-                  className="flex-1 bg-[#C8E64C] text-[#2A3300] hover:bg-[#B8D63C] text-xs py-1.5 rounded-full font-semibold disabled:opacity-40 transition-colors"
-                >
-                  {guardandoRubro ? '…' : 'Crear'}
-                </button>
-                <button
-                  onClick={() => {
-                    setAgregandoRubro(false);
-                    setNuevoRubroNombre('');
-                    setErrorNuevoRubro(null);
-                  }}
-                  className="flex-1 text-xs py-1.5 rounded-full font-medium transition-colors"
-                  style={{ color: '#6B7080' }}
-                >
-                  Cancelar
-                </button>
-              </div>
-            </div>
-          )}
         </aside>
 
-        {/* ── Panel derecho: ítems y mediciones ── */}
-        <section className="flex-1 min-h-screen" style={{ background: 'rgba(255,255,255,0.20)' }}>
+        {/* ── Panel derecho: ítems y mediciones ──
+            PROBLEMA 3: overflow-y-auto en lugar de min-h-screen — scroll independiente */}
+        <section
+          className="flex-1 overflow-y-auto"
+          style={{ background: 'rgba(255,255,255,0.55)' }}
+        >
           {rubroSeleccionado === null ? (
             <div
-              className="flex flex-col items-center justify-center gap-4"
-              style={{ height: 'calc(100vh - 48px)' }}
+              className="flex flex-col items-center justify-center gap-4 h-full"
             >
               {rubros.length === 0 && !cargandoRubros ? (
                 <>
