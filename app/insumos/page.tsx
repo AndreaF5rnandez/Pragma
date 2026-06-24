@@ -32,10 +32,10 @@ const SENTINEL_OTRA = '__otra__';
 
 /* ─── Tipos y badges ───────────────────────────────────────────────────────── */
 
-const TIPO_CONFIG: Record<Insumo['tipo'], { etiqueta: string; clases: string }> = {
-  material:     { etiqueta: 'Material',     clases: 'bg-green-100 text-green-800' },
-  mano_de_obra: { etiqueta: 'Mano de obra', clases: 'bg-blue-100 text-blue-800' },
-  equipo:       { etiqueta: 'Equipo',       clases: 'bg-orange-100 text-orange-800' },
+const TIPO_CONFIG: Record<Insumo['tipo'], { etiqueta: string; bg: string; color: string }> = {
+  material:     { etiqueta: 'Material',     bg: '#DCFCE7', color: '#22C55E' },
+  mano_de_obra: { etiqueta: 'Mano de obra', bg: '#DBEAFE', color: '#3B82F6' },
+  equipo:       { etiqueta: 'Equipo',       bg: '#FEF3C7', color: '#F59E0B' },
 };
 
 const FILTROS: { valor: Insumo['tipo'] | undefined; etiqueta: string }[] = [
@@ -57,9 +57,10 @@ const FORM_INICIAL: FormData = {
 };
 
 const INPUT_INLINE =
-  'w-full border border-transparent rounded px-2 py-1.5 text-sm text-pragma-texto bg-transparent focus:outline-none focus:border-pragma-superficie focus:bg-white focus:ring-1 focus:ring-pragma-accent transition-colors';
+  'w-full border border-transparent rounded-[8px] px-2 py-1.5 text-sm text-[#1A1A2E] bg-transparent focus:outline-none focus:border-black/[0.12] focus:bg-white/60 focus:shadow-[0_0_0_3px_rgba(200,230,76,0.2)] transition-all placeholder:text-[#9CA3AF]';
+
 const INPUT_MODAL =
-  'w-full border border-pragma-superficie rounded-md px-3 py-2 text-sm text-pragma-texto bg-white focus:outline-none focus:ring-2 focus:ring-pragma-accent';
+  'w-full border border-black/[0.12] rounded-[10px] px-3.5 py-2.5 text-sm text-[#1A1A2E] bg-white/60 backdrop-blur-[8px] focus:outline-none focus:border-[#C8E64C] focus:shadow-[0_0_0_3px_rgba(200,230,76,0.2)] transition-all placeholder:text-[#9CA3AF]';
 
 function formatPrecio(precio: number) {
   return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(precio);
@@ -95,7 +96,8 @@ function UnidadInput({
           type="button"
           title="Volver al listado"
           onClick={() => { setModoTexto(false); onChange(''); }}
-          className="shrink-0 text-base leading-none text-pragma-textoClaro hover:text-pragma-texto"
+          className="shrink-0 text-base leading-none transition-colors"
+          style={{ color: '#6B7080' }}
         >
           ↩
         </button>
@@ -210,13 +212,13 @@ export default function InsumosPage() {
   /* ── Render ── */
 
   return (
-    <div className="p-8">
+    <div className="p-6">
       {/* Barra superior */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-pragma-texto">Lista de insumos</h1>
+        <h1 className="text-2xl font-bold" style={{ color: '#1A1A2E' }}>Lista de insumos</h1>
         <button
           onClick={() => nombreRef.current?.focus()}
-          className="bg-pragma-accent text-white px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
+          className="bg-[#C8E64C] text-[#2A3300] hover:bg-[#B8D63C] px-5 py-2 rounded-full text-sm font-semibold transition-colors"
         >
           + Nuevo insumo
         </button>
@@ -228,11 +230,12 @@ export default function InsumosPage() {
           <button
             key={etiqueta}
             onClick={() => setFiltroTipo(valor)}
-            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
               filtroTipo === valor
-                ? 'bg-pragma-accent text-white'
-                : 'bg-pragma-superficie text-pragma-textoClaro hover:opacity-80'
+                ? 'bg-[#C8E64C] text-[#2A3300]'
+                : 'text-[#6B7080] hover:bg-black/[0.06]'
             }`}
+            style={filtroTipo !== valor ? { background: 'rgba(255,255,255,0.55)' } : undefined}
           >
             {etiqueta}
           </button>
@@ -240,57 +243,71 @@ export default function InsumosPage() {
       </div>
 
       {cargando ? (
-        <p className="text-center text-pragma-textoClaro mt-20">Cargando...</p>
+        <p className="text-center mt-20 text-sm" style={{ color: '#6B7080' }}>Cargando...</p>
       ) : error ? (
-        <div className="mx-auto max-w-md mt-20 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-red-700 text-sm text-center">
+        <div
+          className="mx-auto max-w-md mt-20 rounded-2xl px-4 py-3 text-sm text-center"
+          style={{ background: '#FEE2E2', color: '#EF4444' }}
+        >
           {error}
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-[0_4px_6px_-1px_rgba(28,20,16,0.08),0_2px_4px_-1px_rgba(28,20,16,0.05)] overflow-hidden">
+        <div
+          className="rounded-2xl overflow-hidden backdrop-blur-[20px]"
+          style={{
+            background: 'rgba(255, 255, 255, 0.55)',
+            border: '1px solid rgba(255, 255, 255, 0.60)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.06)',
+          }}
+        >
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-pragma-superficie text-left">
-                <th className="px-4 py-3 text-xs font-medium text-pragma-textoClaro uppercase tracking-wider w-[30%]">Nombre</th>
-                <th className="px-4 py-3 text-xs font-medium text-pragma-textoClaro uppercase tracking-wider w-[22%]">Unidad</th>
-                <th className="px-4 py-3 text-xs font-medium text-pragma-textoClaro uppercase tracking-wider w-[14%]">Tipo</th>
-                <th className="px-4 py-3 text-xs font-medium text-pragma-textoClaro uppercase tracking-wider text-right w-[18%]">
+              <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider w-[30%]" style={{ color: '#9CA3AF' }}>Nombre</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider w-[22%]" style={{ color: '#9CA3AF' }}>Unidad</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider w-[14%]" style={{ color: '#9CA3AF' }}>Tipo</th>
+                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider w-[18%]" style={{ color: '#9CA3AF' }}>
                   Precio unitario
                 </th>
-                <th className="px-4 py-3 text-xs font-medium text-pragma-textoClaro uppercase tracking-wider text-right w-[16%]">
+                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider w-[16%]" style={{ color: '#9CA3AF' }}>
                   Acciones
                 </th>
               </tr>
             </thead>
             <tbody>
-              {insumos.map((insumo, i) => {
-                const { etiqueta, clases } = TIPO_CONFIG[insumo.tipo];
+              {insumos.map((insumo) => {
+                const { etiqueta, bg, color } = TIPO_CONFIG[insumo.tipo];
                 return (
                   <tr
                     key={insumo.id}
-                    className={`border-t border-pragma-superficie/60 hover:bg-pragma-fondo/80 transition-colors ${
-                      i % 2 === 0 ? 'bg-white' : 'bg-pragma-fondo/40'
-                    }`}
+                    className="hover:bg-black/[0.02] transition-colors"
+                    style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}
                   >
-                    <td className="px-4 py-3 font-medium text-pragma-texto">{insumo.nombre}</td>
-                    <td className="px-4 py-3 text-pragma-textoClaro">{insumo.unidad_medida}</td>
+                    <td className="px-4 py-3 font-medium" style={{ color: '#1A1A2E' }}>{insumo.nombre}</td>
+                    <td className="px-4 py-3" style={{ color: '#6B7080' }}>{insumo.unidad_medida}</td>
                     <td className="px-4 py-3">
-                      <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${clases}`}>
+                      <span
+                        className="inline-block px-2 py-0.5 rounded-full text-xs font-medium"
+                        style={{ background: bg, color }}
+                      >
                         {etiqueta}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right text-pragma-texto font-mono tabular-nums">
+                    <td className="px-4 py-3 text-right font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
                       {formatPrecio(insumo.precio_unitario)}
                     </td>
                     <td className="px-4 py-3 text-right space-x-4">
                       <button
                         onClick={() => abrirEditar(insumo)}
-                        className="text-pragma-accent text-xs font-medium hover:underline"
+                        className="text-xs font-medium hover:underline"
+                        style={{ color: '#C8E64C' }}
                       >
                         Editar
                       </button>
                       <button
                         onClick={() => handleEliminar(insumo)}
-                        className="text-red-400 text-xs font-medium hover:underline hover:text-red-600"
+                        className="text-xs font-medium hover:underline"
+                        style={{ color: '#EF4444' }}
                       >
                         Eliminar
                       </button>
@@ -300,7 +317,7 @@ export default function InsumosPage() {
               })}
 
               {/* ── Fila de creación rápida ── */}
-              <tr className="border-t-2 border-pragma-accent/20 bg-pragma-fondo/50">
+              <tr style={{ borderTop: '2px solid rgba(200,230,76,0.3)' }}>
                 <td className="px-4 py-2">
                   <input
                     ref={nombreRef}
@@ -358,7 +375,7 @@ export default function InsumosPage() {
                   <button
                     onClick={handleGuardarFila}
                     disabled={guardandoFila || !fila.nombre.trim() || !fila.unidad_medida}
-                    className="bg-pragma-accent text-white px-3 py-1.5 rounded-md text-xs font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity"
+                    className="bg-[#C8E64C] text-[#2A3300] hover:bg-[#B8D63C] px-4 py-1.5 rounded-full text-xs font-semibold disabled:opacity-40 transition-colors"
                   >
                     {guardandoFila ? '…' : 'Guardar'}
                   </button>
@@ -368,7 +385,10 @@ export default function InsumosPage() {
               {errorFila && (
                 <tr>
                   <td colSpan={5} className="px-4 py-2">
-                    <div className="bg-red-50 border border-red-200 rounded px-3 py-1.5 text-xs text-red-700">
+                    <div
+                      className="rounded-[10px] px-3 py-1.5 text-xs"
+                      style={{ background: '#FEE2E2', color: '#EF4444' }}
+                    >
                       {errorFila}
                     </div>
                   </td>
@@ -382,12 +402,20 @@ export default function InsumosPage() {
       {/* ── Modal de edición ── */}
       {insumoEditando && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-            <h2 className="text-lg font-bold text-pragma-texto mb-5">Editar insumo</h2>
+          <div
+            className="w-full max-w-md p-6 backdrop-blur-[24px]"
+            style={{
+              background: 'rgba(255, 255, 255, 0.85)',
+              border: '1px solid rgba(255, 255, 255, 0.60)',
+              borderRadius: '20px',
+              boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
+            }}
+          >
+            <h2 className="text-lg font-bold mb-5" style={{ color: '#1A1A2E' }}>Editar insumo</h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-pragma-texto mb-1">Nombre</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A2E' }}>Nombre</label>
                 <input
                   type="text"
                   value={form.nombre}
@@ -398,7 +426,7 @@ export default function InsumosPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-pragma-texto mb-1">Unidad</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A2E' }}>Unidad</label>
                 <UnidadInput
                   key={insumoEditando.id}
                   value={form.unidad_medida}
@@ -408,7 +436,7 @@ export default function InsumosPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-pragma-texto mb-1">Tipo</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A2E' }}>Tipo</label>
                 <select
                   value={form.tipo}
                   onChange={(e) =>
@@ -423,7 +451,7 @@ export default function InsumosPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-pragma-texto mb-1">
+                <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A2E' }}>
                   Precio unitario
                 </label>
                 <input
@@ -444,7 +472,10 @@ export default function InsumosPage() {
             </div>
 
             {errorModal && (
-              <div className="mt-4 bg-red-50 border border-red-200 rounded-md px-3 py-2 text-sm text-red-700">
+              <div
+                className="mt-4 rounded-[10px] px-3 py-2 text-sm"
+                style={{ background: '#FEE2E2', color: '#EF4444' }}
+              >
                 {errorModal}
               </div>
             )}
@@ -453,14 +484,15 @@ export default function InsumosPage() {
               <button
                 onClick={cerrarModal}
                 disabled={guardandoModal}
-                className="px-4 py-2 text-sm font-medium text-pragma-textoClaro hover:text-pragma-texto transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+                style={{ color: '#6B7080' }}
               >
                 Cancelar
               </button>
               <button
                 onClick={handleGuardarModal}
                 disabled={guardandoModal}
-                className="bg-pragma-accent text-white px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-60"
+                className="bg-[#C8E64C] text-[#2A3300] hover:bg-[#B8D63C] px-5 py-2 rounded-full text-sm font-semibold transition-colors disabled:opacity-50"
               >
                 {guardandoModal ? 'Guardando…' : 'Guardar'}
               </button>

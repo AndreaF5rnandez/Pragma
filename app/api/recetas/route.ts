@@ -70,13 +70,9 @@ function validarPayloadReceta(
   return null;
 }
 
-function mapearReceta(
-  receta: Omit<RecetaConInsumos, "precio_unitario"> & {
-    ingredientes?: RecetaConInsumos["ingredientes"];
-  },
-): RecetaConInsumos {
+function mapearReceta(rawData: unknown): RecetaConInsumos {
+  const receta = rawData as Omit<RecetaConInsumos, "precio_unitario">;
   const ingredientes = receta.ingredientes ?? [];
-
   return {
     ...receta,
     ingredientes,
@@ -96,7 +92,7 @@ async function obtenerRecetaCompletaPorId(id: string) {
     throw new Error(error.message);
   }
 
-  return data ? mapearReceta(data as Omit<RecetaConInsumos, "precio_unitario">) : null;
+  return data ? mapearReceta(data) : null;
 }
 
 export async function GET() {
@@ -112,7 +108,7 @@ export async function GET() {
     }
 
     const recetas = (data ?? []).map((receta) =>
-      mapearReceta(receta as Omit<RecetaConInsumos, "precio_unitario">),
+      mapearReceta(receta),
     );
 
     return NextResponse.json(recetas, { status: 200 });

@@ -21,11 +21,10 @@ function formatNum(v: number) {
 }
 
 const INPUT_MODAL =
-  'w-full border border-pragma-superficie rounded-md px-3 py-2 text-sm text-pragma-texto bg-white focus:outline-none focus:ring-2 focus:ring-pragma-accent';
+  'w-full border border-black/[0.12] rounded-[10px] px-3.5 py-2.5 text-sm text-[#1A1A2E] bg-white/60 backdrop-blur-[8px] focus:outline-none focus:border-[#C8E64C] focus:shadow-[0_0_0_3px_rgba(200,230,76,0.2)] transition-all placeholder:text-[#9CA3AF]';
 
-/* Inputs de medición: borde solo visible en focus, planilla limpia en reposo */
 const INPUT_FILA =
-  'w-full border border-transparent rounded px-2 py-1 text-sm text-pragma-texto bg-transparent focus:outline-none focus:border-pragma-superficie focus:bg-white focus:ring-1 focus:ring-pragma-accent transition-colors';
+  'w-full border border-transparent rounded-[8px] px-2 py-1 text-sm text-[#1A1A2E] bg-transparent focus:outline-none focus:border-black/[0.12] focus:bg-white/60 focus:shadow-[0_0_0_3px_rgba(200,230,76,0.2)] transition-all';
 
 /* ─── FilaForm ─────────────────────────────────────────────────────────────── */
 
@@ -139,44 +138,59 @@ function SeccionItem({
   }
 
   return (
-    <div className="border border-pragma-superficie rounded-xl mb-4 overflow-hidden bg-white shadow-[0_2px_9px_-5px_rgba(28,20,16,0.15)]">
+    <div
+      className="rounded-2xl mb-4 overflow-hidden backdrop-blur-[20px]"
+      style={{
+        background: 'rgba(255, 255, 255, 0.55)',
+        border: '1px solid rgba(255, 255, 255, 0.60)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.06)',
+      }}
+    >
       {/* Cabecera del ítem */}
-      <div className="border-l-[3px] border-pragma-accent px-4 py-3 flex items-start justify-between gap-4 border-b border-pragma-superficie bg-white">
+      <div
+        className="px-4 py-3 flex items-start justify-between gap-4"
+        style={{
+          borderLeft: '3px solid #C8E64C',
+          borderBottom: '1px solid rgba(0,0,0,0.06)',
+        }}
+      >
         <div className="min-w-0">
-          <p className="font-medium text-pragma-texto truncate">{item.descripcion}</p>
-          <p className="text-xs text-pragma-textoClaro mt-0.5">
+          <p className="font-medium truncate" style={{ color: '#1A1A2E' }}>{item.descripcion}</p>
+          <p className="text-xs mt-0.5" style={{ color: '#6B7080' }}>
             {item.receta.nombre} · {item.receta.unidad_medida}
           </p>
         </div>
         <div className="flex items-center gap-5 shrink-0">
           <div className="text-right">
-            <p className="text-xs text-pragma-textoClaro">Cantidad</p>
-            <p className="text-sm font-medium text-pragma-texto font-mono tabular-nums">
+            <p className="text-xs" style={{ color: '#9CA3AF' }}>Cantidad</p>
+            <p className="text-sm font-medium font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
               {formatNum(cantidadTotal)} {item.receta.unidad_medida}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-pragma-textoClaro">P. Unitario</p>
-            <p className="text-sm font-medium text-pragma-texto font-mono tabular-nums">
+            <p className="text-xs" style={{ color: '#9CA3AF' }}>P. Unitario</p>
+            <p className="text-sm font-medium font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
               {formatPrecio(precioUnitario)}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-pragma-textoClaro">Subtotal</p>
-            <p className="text-sm font-bold text-pragma-totales font-mono tabular-nums">
+            <p className="text-xs" style={{ color: '#9CA3AF' }}>Subtotal</p>
+            <p className="text-sm font-bold font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
               {formatPrecio(subtotal)}
             </p>
           </div>
           <div className="flex gap-3">
             <button
               onClick={onEditar}
-              className="text-xs text-pragma-accent font-medium hover:underline"
+              className="text-xs font-medium hover:underline"
+              style={{ color: '#C8E64C' }}
             >
               Editar
             </button>
             <button
               onClick={onEliminar}
-              className="text-xs text-red-400 font-medium hover:underline hover:text-red-600"
+              className="text-xs font-medium hover:underline"
+              style={{ color: '#EF4444' }}
             >
               Eliminar
             </button>
@@ -186,17 +200,17 @@ function SeccionItem({
 
       {/* Tabla de mediciones */}
       {cargando ? (
-        <p className="px-4 py-3 text-sm text-pragma-textoClaro">Cargando mediciones…</p>
+        <p className="px-4 py-3 text-sm" style={{ color: '#6B7080' }}>Cargando mediciones…</p>
       ) : (
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-pragma-fondo border-b border-pragma-superficie">
-              <th className="px-4 py-2 text-left text-xs font-medium text-pragma-textoClaro uppercase tracking-wider">Descripción</th>
-              <th className="px-3 py-2 text-right text-xs font-medium text-pragma-textoClaro uppercase tracking-wider w-20">N</th>
-              <th className="px-3 py-2 text-right text-xs font-medium text-pragma-textoClaro uppercase tracking-wider w-20">Largo</th>
-              <th className="px-3 py-2 text-right text-xs font-medium text-pragma-textoClaro uppercase tracking-wider w-20">Ancho</th>
-              <th className="px-3 py-2 text-right text-xs font-medium text-pragma-textoClaro uppercase tracking-wider w-20">Alto</th>
-              <th className="px-3 py-2 text-right text-xs font-medium text-pragma-textoClaro uppercase tracking-wider w-24">Cantidad</th>
+            <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+              <th className="px-4 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: '#9CA3AF' }}>Descripción</th>
+              <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider w-20" style={{ color: '#9CA3AF' }}>N</th>
+              <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider w-20" style={{ color: '#9CA3AF' }}>Largo</th>
+              <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider w-20" style={{ color: '#9CA3AF' }}>Ancho</th>
+              <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider w-20" style={{ color: '#9CA3AF' }}>Alto</th>
+              <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider w-24" style={{ color: '#9CA3AF' }}>Cantidad</th>
               <th className="px-3 py-2 w-10" />
             </tr>
           </thead>
@@ -207,7 +221,10 @@ function SeccionItem({
                 return (
                   <tr
                     key={m.id}
-                    className="border-b border-pragma-superficie/40 bg-pragma-accent/5"
+                    style={{
+                      borderBottom: '1px solid rgba(0,0,0,0.04)',
+                      background: 'rgba(200,230,76,0.06)',
+                    }}
                     onBlur={(e) => {
                       if (!e.currentTarget.contains(e.relatedTarget as Node)) {
                         handleGuardarEdicion();
@@ -228,9 +245,7 @@ function SeccionItem({
                     </td>
                     <td className="px-3 py-1.5">
                       <input
-                        type="number"
-                        min="0"
-                        step="0.001"
+                        type="number" min="0" step="0.001"
                         value={editForm.n === '' ? '' : editForm.n}
                         onChange={(e) =>
                           setEditForm((f) => ({
@@ -244,9 +259,7 @@ function SeccionItem({
                     </td>
                     <td className="px-3 py-1.5">
                       <input
-                        type="number"
-                        min="0"
-                        step="0.001"
+                        type="number" min="0" step="0.001"
                         value={editForm.largo === '' ? '' : editForm.largo}
                         onChange={(e) =>
                           setEditForm((f) => ({
@@ -260,9 +273,7 @@ function SeccionItem({
                     </td>
                     <td className="px-3 py-1.5">
                       <input
-                        type="number"
-                        min="0"
-                        step="0.001"
+                        type="number" min="0" step="0.001"
                         value={editForm.ancho === '' ? '' : editForm.ancho}
                         onChange={(e) =>
                           setEditForm((f) => ({
@@ -276,9 +287,7 @@ function SeccionItem({
                     </td>
                     <td className="px-3 py-1.5">
                       <input
-                        type="number"
-                        min="0"
-                        step="0.001"
+                        type="number" min="0" step="0.001"
                         value={editForm.alto === '' ? '' : editForm.alto}
                         onChange={(e) =>
                           setEditForm((f) => ({
@@ -290,14 +299,15 @@ function SeccionItem({
                         className={`${INPUT_FILA} text-right font-mono`}
                       />
                     </td>
-                    <td className="px-3 py-2 text-right font-mono font-medium text-pragma-textoClaro tabular-nums">
+                    <td className="px-3 py-2 text-right font-mono font-medium tabular-nums" style={{ color: '#6B7080' }}>
                       {formatNum(m.cantidad_calculada)}
                     </td>
                     <td className="px-3 py-1.5 text-center">
                       <button
                         onClick={() => setEditandoId(null)}
                         title="Cancelar edición (Esc)"
-                        className="text-xl leading-none text-pragma-textoClaro hover:text-red-500 transition-colors"
+                        className="text-xl leading-none transition-colors"
+                        style={{ color: '#9CA3AF' }}
                       >
                         ×
                       </button>
@@ -311,20 +321,15 @@ function SeccionItem({
                 <tr
                   key={m.id}
                   onClick={() => entrarEdicion(m)}
-                  className="border-b border-pragma-superficie/40 hover:bg-pragma-fondo/50 transition-colors cursor-pointer"
+                  className="hover:bg-black/[0.02] transition-colors cursor-pointer"
+                  style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}
                 >
-                  <td className="px-4 py-2 text-pragma-texto">{m.descripcion}</td>
-                  <td className="px-3 py-2 text-right text-pragma-textoClaro font-mono tabular-nums">{m.n}</td>
-                  <td className="px-3 py-2 text-right text-pragma-textoClaro font-mono tabular-nums">
-                    {m.largo ?? '—'}
-                  </td>
-                  <td className="px-3 py-2 text-right text-pragma-textoClaro font-mono tabular-nums">
-                    {m.ancho ?? '—'}
-                  </td>
-                  <td className="px-3 py-2 text-right text-pragma-textoClaro font-mono tabular-nums">
-                    {m.alto ?? '—'}
-                  </td>
-                  <td className="px-3 py-2 text-right font-mono font-semibold text-pragma-texto tabular-nums">
+                  <td className="px-4 py-2" style={{ color: '#1A1A2E' }}>{m.descripcion}</td>
+                  <td className="px-3 py-2 text-right font-mono tabular-nums" style={{ color: '#6B7080' }}>{m.n}</td>
+                  <td className="px-3 py-2 text-right font-mono tabular-nums" style={{ color: '#6B7080' }}>{m.largo ?? '—'}</td>
+                  <td className="px-3 py-2 text-right font-mono tabular-nums" style={{ color: '#6B7080' }}>{m.ancho ?? '—'}</td>
+                  <td className="px-3 py-2 text-right font-mono tabular-nums" style={{ color: '#6B7080' }}>{m.alto ?? '—'}</td>
+                  <td className="px-3 py-2 text-right font-mono font-semibold tabular-nums" style={{ color: '#1A1A2E' }}>
                     {formatNum(m.cantidad_calculada)}
                   </td>
                   <td className="px-3 py-2 text-center">
@@ -338,7 +343,8 @@ function SeccionItem({
                           window.alert(err instanceof Error ? err.message : 'Error al eliminar');
                         }
                       }}
-                      className="text-xl leading-none text-pragma-textoClaro hover:text-red-500 transition-colors"
+                      className="text-xl leading-none transition-colors"
+                      style={{ color: '#9CA3AF' }}
                       title="Eliminar medición"
                     >
                       ×
@@ -349,7 +355,7 @@ function SeccionItem({
             })}
 
             {/* Fila de nueva medición */}
-            <tr className="border-t-2 border-pragma-accent/20 bg-pragma-fondo/50">
+            <tr style={{ borderTop: '2px solid rgba(200,230,76,0.3)' }}>
               <td className="px-4 py-1.5">
                 <input
                   ref={descripcionRef}
@@ -363,9 +369,7 @@ function SeccionItem({
               </td>
               <td className="px-3 py-1.5">
                 <input
-                  type="number"
-                  min="0"
-                  step="0.001"
+                  type="number" min="0" step="0.001"
                   value={fila.n === '' ? '' : fila.n}
                   onChange={(e) =>
                     setFila((f) => ({ ...f, n: e.target.value === '' ? '' : Number(e.target.value) }))
@@ -377,9 +381,7 @@ function SeccionItem({
               </td>
               <td className="px-3 py-1.5">
                 <input
-                  type="number"
-                  min="0"
-                  step="0.001"
+                  type="number" min="0" step="0.001"
                   value={fila.largo === '' ? '' : fila.largo}
                   onChange={(e) =>
                     setFila((f) => ({
@@ -394,9 +396,7 @@ function SeccionItem({
               </td>
               <td className="px-3 py-1.5">
                 <input
-                  type="number"
-                  min="0"
-                  step="0.001"
+                  type="number" min="0" step="0.001"
                   value={fila.ancho === '' ? '' : fila.ancho}
                   onChange={(e) =>
                     setFila((f) => ({
@@ -411,9 +411,7 @@ function SeccionItem({
               </td>
               <td className="px-3 py-1.5">
                 <input
-                  type="number"
-                  min="0"
-                  step="0.001"
+                  type="number" min="0" step="0.001"
                   value={fila.alto === '' ? '' : fila.alto}
                   onChange={(e) =>
                     setFila((f) => ({
@@ -432,7 +430,8 @@ function SeccionItem({
                   onClick={handleGuardarFila}
                   disabled={guardandoFila || !fila.descripcion.trim()}
                   title="Guardar (Enter)"
-                  className="font-bold text-base leading-none text-pragma-accent hover:text-pragma-totales disabled:opacity-30 transition-colors"
+                  className="font-bold text-base leading-none disabled:opacity-30 transition-colors"
+                  style={{ color: '#C8E64C' }}
                 >
                   ↵
                 </button>
@@ -442,7 +441,10 @@ function SeccionItem({
             {errorFila && (
               <tr>
                 <td colSpan={7} className="px-4 py-1.5">
-                  <div className="bg-red-50 border border-red-200 rounded px-3 py-1.5 text-xs text-red-700">
+                  <div
+                    className="rounded-[10px] px-3 py-1.5 text-xs"
+                    style={{ background: '#FEE2E2', color: '#EF4444' }}
+                  >
                     {errorFila}
                   </div>
                 </td>
@@ -548,23 +550,26 @@ function ContenidoRubro({
     <div className="p-6">
       {/* Encabezado del rubro */}
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-bold text-pragma-texto">{rubroNombre}</h2>
+        <h2 className="text-xl font-bold" style={{ color: '#1A1A2E' }}>{rubroNombre}</h2>
         <button
           onClick={abrirCrear}
-          className="bg-pragma-accent text-white px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
+          className="bg-[#C8E64C] text-[#2A3300] hover:bg-[#B8D63C] px-5 py-2 rounded-full text-sm font-semibold transition-colors"
         >
           + Nuevo ítem
         </button>
       </div>
 
       {cargando ? (
-        <p className="text-center text-pragma-textoClaro mt-16">Cargando ítems…</p>
+        <p className="text-center mt-16 text-sm" style={{ color: '#6B7080' }}>Cargando ítems…</p>
       ) : error ? (
-        <div className="mx-auto max-w-md mt-16 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-red-700 text-sm text-center">
+        <div
+          className="mx-auto max-w-md mt-16 rounded-2xl px-4 py-3 text-sm text-center"
+          style={{ background: '#FEE2E2', color: '#EF4444' }}
+        >
           {error}
         </div>
       ) : items.length === 0 ? (
-        <p className="text-center text-pragma-textoClaro mt-16">
+        <p className="text-center mt-16 text-sm" style={{ color: '#6B7080' }}>
           No hay ítems en este rubro. Creá el primero con el botón de arriba.
         </p>
       ) : (
@@ -582,9 +587,15 @@ function ContenidoRubro({
 
           {/* Subtotal del rubro */}
           <div className="flex justify-end mt-2 mb-4">
-            <div className="bg-pragma-totales/10 border border-pragma-totales/20 rounded-xl px-5 py-3 text-right">
-              <p className="text-xs text-pragma-textoClaro mb-0.5">Subtotal {rubroNombre}</p>
-              <p className="text-xl font-bold text-pragma-totales font-mono tabular-nums">
+            <div
+              className="rounded-2xl px-5 py-3 text-right"
+              style={{
+                background: 'rgba(200,230,76,0.12)',
+                border: '1px solid rgba(200,230,76,0.30)',
+              }}
+            >
+              <p className="text-xs mb-0.5" style={{ color: '#6B7080' }}>Subtotal {rubroNombre}</p>
+              <p className="text-xl font-bold font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
                 {formatPrecio(subtotalRubro)}
               </p>
             </div>
@@ -595,14 +606,22 @@ function ContenidoRubro({
       {/* Modal ítem */}
       {modalAbierto && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-            <h3 className="text-lg font-bold text-pragma-texto mb-5">
+          <div
+            className="w-full max-w-md p-6 backdrop-blur-[24px]"
+            style={{
+              background: 'rgba(255, 255, 255, 0.85)',
+              border: '1px solid rgba(255, 255, 255, 0.60)',
+              borderRadius: '20px',
+              boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
+            }}
+          >
+            <h3 className="text-lg font-bold mb-5" style={{ color: '#1A1A2E' }}>
               {itemEditando ? 'Editar ítem' : 'Nuevo ítem'}
             </h3>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-pragma-texto mb-1">
+                <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A2E' }}>
                   Descripción
                 </label>
                 <input
@@ -616,7 +635,7 @@ function ContenidoRubro({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-pragma-texto mb-1">
+                <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A2E' }}>
                   Receta (APU)
                 </label>
                 <select
@@ -635,7 +654,10 @@ function ContenidoRubro({
             </div>
 
             {errorModal && (
-              <div className="mt-4 bg-red-50 border border-red-200 rounded-md px-3 py-2 text-sm text-red-700">
+              <div
+                className="mt-4 rounded-[10px] px-3 py-2 text-sm"
+                style={{ background: '#FEE2E2', color: '#EF4444' }}
+              >
                 {errorModal}
               </div>
             )}
@@ -647,7 +669,8 @@ function ContenidoRubro({
                   setItemEditando(null);
                 }}
                 disabled={guardandoModal}
-                className="px-4 py-2 text-sm font-medium text-pragma-textoClaro hover:text-pragma-texto transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+                style={{ color: '#6B7080' }}
               >
                 Cancelar
               </button>
@@ -656,7 +679,7 @@ function ContenidoRubro({
                 disabled={
                   guardandoModal || !formItem.descripcion.trim() || !formItem.receta_id
                 }
-                className="bg-pragma-accent text-white px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-60"
+                className="bg-[#C8E64C] text-[#2A3300] hover:bg-[#B8D63C] px-5 py-2 rounded-full text-sm font-semibold transition-colors disabled:opacity-50"
               >
                 {guardandoModal
                   ? 'Guardando…'
@@ -765,20 +788,31 @@ export default function MedicionPage() {
   return (
     <div className="flex flex-col min-h-full">
       {/* ── Barra de navegación superior con tabs ── */}
-      <header className="sticky top-0 z-10 bg-white border-b border-pragma-superficie px-6 flex items-stretch gap-4 shrink-0" style={{ height: '48px' }}>
-        <span className="font-semibold text-pragma-texto text-sm truncate flex-1 flex items-center">
+      <header
+        className="sticky top-0 z-10 px-6 flex items-stretch gap-4 shrink-0"
+        style={{
+          height: '48px',
+          background: 'rgba(255, 255, 255, 0.80)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.50)',
+        }}
+      >
+        <span className="font-semibold text-sm truncate flex-1 flex items-center" style={{ color: '#1A1A2E' }}>
           {obraNombre || '…'}
         </span>
         <nav className="flex h-full">
           <Link
             href={`/obras/${obraId}/medicion`}
-            className="px-5 flex items-center text-sm font-medium border-b-2 border-pragma-accent text-pragma-texto"
+            className="px-5 flex items-center text-sm font-semibold border-b-2"
+            style={{ borderColor: '#1A1A2E', color: '#1A1A2E' }}
           >
             Cómputo
           </Link>
           <Link
             href={`/obras/${obraId}/presupuesto`}
-            className="px-5 flex items-center text-sm font-medium border-b-2 border-transparent text-pragma-textoClaro hover:text-pragma-texto transition-colors"
+            className="px-5 flex items-center text-sm font-medium border-b-2 border-transparent transition-colors"
+            style={{ color: '#6B7080' }}
           >
             Presupuesto
           </Link>
@@ -788,22 +822,28 @@ export default function MedicionPage() {
       {/* ── Contenido de dos paneles ── */}
       <div className="flex flex-1">
         {/* ── Panel izquierdo: rubros ── */}
-        <aside className="w-[260px] shrink-0 bg-pragma-superficie border-r border-pragma-superficie/60 flex flex-col sticky top-12 h-[calc(100vh-3rem)] overflow-hidden">
+        <aside
+          className="w-[260px] shrink-0 flex flex-col sticky top-12 h-[calc(100vh-3rem)] overflow-hidden backdrop-blur-[20px]"
+          style={{
+            background: 'rgba(255, 255, 255, 0.45)',
+            borderRight: '1px solid rgba(255, 255, 255, 0.50)',
+          }}
+        >
           {/* Lista de rubros */}
           {cargandoRubros ? (
             <div className="flex-1 flex items-center justify-center">
-              <p className="text-sm text-pragma-textoClaro">Cargando…</p>
+              <p className="text-sm" style={{ color: '#6B7080' }}>Cargando…</p>
             </div>
           ) : errorRubros ? (
             <div className="flex-1 flex items-center justify-center px-4">
-              <p className="text-sm text-red-500 text-center">{errorRubros}</p>
+              <p className="text-sm text-center" style={{ color: '#EF4444' }}>{errorRubros}</p>
             </div>
           ) : rubros.length === 0 && !agregandoRubro ? (
             <div className="flex-1 flex flex-col items-center justify-center px-5 text-center">
-              <p className="text-sm font-medium text-pragma-texto mb-2">
+              <p className="text-sm font-medium mb-2" style={{ color: '#1A1A2E' }}>
                 Creá tu primer rubro para empezar
               </p>
-              <p className="text-xs text-pragma-textoClaro leading-relaxed">
+              <p className="text-xs leading-relaxed" style={{ color: '#6B7080' }}>
                 Ej: Excavación, Hormigón Armado, Mampostería
               </p>
             </div>
@@ -814,23 +854,26 @@ export default function MedicionPage() {
                 return (
                   <li
                     key={rubro.id}
-                    className={`group flex items-stretch transition-colors border-l-[3px] ${
-                      activo ? 'border-pragma-accent' : 'border-transparent'
-                    }`}
+                    className="group flex items-stretch transition-colors"
+                    style={{
+                      borderLeft: activo ? '3px solid #C8E64C' : '3px solid transparent',
+                    }}
                   >
                     <button
                       onClick={() => setRubroSeleccionadoId(rubro.id)}
-                      className={`flex-1 min-w-0 text-left px-4 py-3 flex items-center justify-between gap-2 transition-colors ${
+                      className="flex-1 min-w-0 text-left px-4 py-3 flex items-center justify-between gap-2 transition-colors hover:bg-black/[0.04]"
+                      style={
                         activo
-                          ? 'bg-white/40 text-pragma-texto'
-                          : 'text-pragma-texto hover:bg-black/5'
-                      }`}
+                          ? { background: 'rgba(200,230,76,0.10)' }
+                          : undefined
+                      }
                     >
-                      <span className="text-sm font-medium truncate">{rubro.nombre}</span>
+                      <span className="text-sm font-medium truncate" style={{ color: '#1A1A2E' }}>
+                        {rubro.nombre}
+                      </span>
                       <span
-                        className={`text-xs font-mono tabular-nums shrink-0 ${
-                          activo ? 'text-pragma-totales font-semibold' : 'text-pragma-textoClaro'
-                        }`}
+                        className="text-xs font-mono tabular-nums shrink-0"
+                        style={{ color: activo ? '#1A1A2E' : '#9CA3AF', fontWeight: activo ? 600 : 400 }}
                       >
                         {subtotales[rubro.id] !== undefined
                           ? formatPrecio(subtotales[rubro.id])
@@ -840,7 +883,8 @@ export default function MedicionPage() {
                     <button
                       onClick={() => handleEliminarRubro(rubro)}
                       title="Eliminar rubro"
-                      className="px-2 opacity-0 group-hover:opacity-100 transition-opacity text-lg leading-none text-pragma-textoClaro hover:text-red-500"
+                      className="px-2 opacity-0 group-hover:opacity-100 transition-opacity text-lg leading-none"
+                      style={{ color: '#9CA3AF' }}
                     >
                       ×
                     </button>
@@ -851,7 +895,7 @@ export default function MedicionPage() {
           )}
 
           {/* Footer: agregar rubro */}
-          <div className="border-t border-black/10 p-3 shrink-0">
+          <div className="p-3 shrink-0" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
             {agregandoRubro ? (
               <div>
                 <input
@@ -869,10 +913,13 @@ export default function MedicionPage() {
                   }}
                   placeholder="Nombre del rubro…"
                   disabled={guardandoRubro}
-                  className="w-full border border-pragma-accent/40 rounded-md px-2 py-1.5 text-sm text-pragma-texto bg-white focus:outline-none focus:ring-1 focus:ring-pragma-accent"
+                  className="w-full border border-black/[0.12] rounded-[10px] px-2.5 py-2 text-sm text-[#1A1A2E] bg-white/60 focus:outline-none focus:border-[#C8E64C] focus:shadow-[0_0_0_3px_rgba(200,230,76,0.2)] transition-all placeholder:text-[#9CA3AF]"
                 />
                 {errorNuevoRubro && (
-                  <div className="mt-1 bg-red-50 border border-red-200 rounded px-2 py-1 text-xs text-red-700">
+                  <div
+                    className="mt-1 rounded-[8px] px-2 py-1 text-xs"
+                    style={{ background: '#FEE2E2', color: '#EF4444' }}
+                  >
                     {errorNuevoRubro}
                   </div>
                 )}
@@ -880,7 +927,7 @@ export default function MedicionPage() {
                   <button
                     onClick={handleCrearRubro}
                     disabled={guardandoRubro || !nuevoRubroNombre.trim()}
-                    className="flex-1 bg-pragma-accent text-white text-xs py-1.5 rounded-md font-semibold hover:opacity-90 disabled:opacity-40 transition-opacity"
+                    className="flex-1 bg-[#C8E64C] text-[#2A3300] hover:bg-[#B8D63C] text-xs py-1.5 rounded-full font-semibold disabled:opacity-40 transition-colors"
                   >
                     {guardandoRubro ? '…' : 'Crear'}
                   </button>
@@ -890,7 +937,8 @@ export default function MedicionPage() {
                       setNuevoRubroNombre('');
                       setErrorNuevoRubro(null);
                     }}
-                    className="flex-1 text-xs py-1.5 rounded-md font-medium text-pragma-textoClaro hover:text-pragma-texto transition-colors"
+                    className="flex-1 text-xs py-1.5 rounded-full font-medium transition-colors"
+                    style={{ color: '#6B7080' }}
                   >
                     Cancelar
                   </button>
@@ -899,7 +947,8 @@ export default function MedicionPage() {
             ) : (
               <button
                 onClick={() => setAgregandoRubro(true)}
-                className="w-full text-sm text-pragma-accent font-medium hover:underline text-left py-0.5"
+                className="w-full text-sm font-medium hover:underline text-left py-0.5"
+                style={{ color: '#6B7080' }}
               >
                 + Agregar rubro
               </button>
@@ -908,10 +957,10 @@ export default function MedicionPage() {
         </aside>
 
         {/* ── Panel derecho: ítems y mediciones ── */}
-        <section className="flex-1 bg-pragma-fondo min-h-screen">
+        <section className="flex-1 min-h-screen">
           {rubroSeleccionado === null ? (
             <div className="flex items-center justify-center h-64">
-              <p className="text-pragma-textoClaro text-sm">
+              <p className="text-sm" style={{ color: '#6B7080' }}>
                 {rubros.length === 0 && !cargandoRubros
                   ? 'Creá un rubro en el panel izquierdo para comenzar.'
                   : 'Seleccioná un rubro para ver sus ítems.'}

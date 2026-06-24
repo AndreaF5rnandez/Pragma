@@ -38,9 +38,10 @@ function formatPrecio(precio: number) {
 }
 
 const INPUT_MODAL =
-  'w-full border border-pragma-superficie rounded-md px-3 py-2 text-sm text-pragma-texto bg-white focus:outline-none focus:ring-2 focus:ring-pragma-accent';
+  'w-full border border-black/[0.12] rounded-[10px] px-3.5 py-2.5 text-sm text-[#1A1A2E] bg-white/60 backdrop-blur-[8px] focus:outline-none focus:border-[#C8E64C] focus:shadow-[0_0_0_3px_rgba(200,230,76,0.2)] transition-all placeholder:text-[#9CA3AF]';
+
 const INPUT_ING =
-  'w-full border border-pragma-superficie rounded px-2 py-1.5 text-sm text-pragma-texto bg-white focus:outline-none focus:ring-1 focus:ring-pragma-accent';
+  'w-full border border-black/[0.12] rounded-[8px] px-2 py-1.5 text-sm text-[#1A1A2E] bg-white/60 focus:outline-none focus:border-[#C8E64C] focus:shadow-[0_0_0_3px_rgba(200,230,76,0.2)] transition-all placeholder:text-[#9CA3AF]';
 
 /* ─── Componente UnidadInput ───────────────────────────────────────────────── */
 
@@ -72,7 +73,8 @@ function UnidadInput({
           type="button"
           title="Volver al listado"
           onClick={() => { setModoTexto(false); onChange(''); }}
-          className="shrink-0 text-base leading-none text-pragma-textoClaro hover:text-pragma-texto"
+          className="shrink-0 text-base leading-none transition-colors"
+          style={{ color: '#6B7080' }}
         >
           ↩
         </button>
@@ -225,13 +227,13 @@ export default function RecetasPage() {
   /* ── Render ── */
 
   return (
-    <div className="p-8">
+    <div className="p-6">
       {/* Barra superior */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-pragma-texto">Recetas (APU)</h1>
+        <h1 className="text-2xl font-bold" style={{ color: '#1A1A2E' }}>Recetas (APU)</h1>
         <button
           onClick={abrirCrear}
-          className="bg-pragma-accent text-white px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
+          className="bg-[#C8E64C] text-[#2A3300] hover:bg-[#B8D63C] px-5 py-2 rounded-full text-sm font-semibold transition-colors"
         >
           + Nueva receta
         </button>
@@ -239,53 +241,64 @@ export default function RecetasPage() {
 
       {/* Contenido principal */}
       {cargando ? (
-        <p className="text-center text-pragma-textoClaro mt-20">Cargando...</p>
+        <p className="text-center mt-20 text-sm" style={{ color: '#6B7080' }}>Cargando...</p>
       ) : error ? (
-        <div className="mx-auto max-w-md mt-20 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-red-700 text-sm text-center">
+        <div
+          className="mx-auto max-w-md mt-20 rounded-2xl px-4 py-3 text-sm text-center"
+          style={{ background: '#FEE2E2', color: '#EF4444' }}
+        >
           {error}
         </div>
       ) : recetas.length === 0 ? (
-        <p className="text-center text-pragma-textoClaro mt-20">
+        <p className="text-center mt-20 text-sm" style={{ color: '#6B7080' }}>
           No hay recetas todavía. Creá la primera con el botón de arriba.
         </p>
       ) : (
-        <div className="bg-white rounded-xl shadow-[0_4px_6px_-1px_rgba(28,20,16,0.08),0_2px_4px_-1px_rgba(28,20,16,0.05)] overflow-hidden">
+        <div
+          className="rounded-2xl overflow-hidden backdrop-blur-[20px]"
+          style={{
+            background: 'rgba(255, 255, 255, 0.55)',
+            border: '1px solid rgba(255, 255, 255, 0.60)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.06)',
+          }}
+        >
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-pragma-superficie text-left">
-                <th className="px-4 py-3 text-xs font-medium text-pragma-textoClaro uppercase tracking-wider w-[45%]">Nombre</th>
-                <th className="px-4 py-3 text-xs font-medium text-pragma-textoClaro uppercase tracking-wider w-[18%]">Unidad</th>
-                <th className="px-4 py-3 text-xs font-medium text-pragma-textoClaro uppercase tracking-wider text-right w-[22%]">
+              <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider w-[45%]" style={{ color: '#9CA3AF' }}>Nombre</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider w-[18%]" style={{ color: '#9CA3AF' }}>Unidad</th>
+                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider w-[22%]" style={{ color: '#9CA3AF' }}>
                   Precio unitario
                 </th>
-                <th className="px-4 py-3 text-xs font-medium text-pragma-textoClaro uppercase tracking-wider text-right w-[15%]">
+                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider w-[15%]" style={{ color: '#9CA3AF' }}>
                   Acciones
                 </th>
               </tr>
             </thead>
             <tbody>
-              {recetas.map((receta, i) => (
+              {recetas.map((receta) => (
                 <tr
                   key={receta.id}
-                  className={`border-t border-pragma-superficie/60 hover:bg-pragma-fondo/80 transition-colors ${
-                    i % 2 === 0 ? 'bg-white' : 'bg-pragma-fondo/40'
-                  }`}
+                  className="hover:bg-black/[0.02] transition-colors"
+                  style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}
                 >
-                  <td className="px-4 py-3 font-medium text-pragma-texto">{receta.nombre}</td>
-                  <td className="px-4 py-3 text-pragma-textoClaro">{receta.unidad_medida}</td>
-                  <td className="px-4 py-3 text-right text-pragma-totales font-mono font-semibold tabular-nums">
+                  <td className="px-4 py-3 font-medium" style={{ color: '#1A1A2E' }}>{receta.nombre}</td>
+                  <td className="px-4 py-3" style={{ color: '#6B7080' }}>{receta.unidad_medida}</td>
+                  <td className="px-4 py-3 text-right font-mono font-bold tabular-nums" style={{ color: '#1A1A2E' }}>
                     {formatPrecio(calcularPrecioReceta(receta))}
                   </td>
                   <td className="px-4 py-3 text-right space-x-4">
                     <button
                       onClick={() => abrirEditar(receta)}
-                      className="text-pragma-accent text-xs font-medium hover:underline"
+                      className="text-xs font-medium hover:underline"
+                      style={{ color: '#C8E64C' }}
                     >
                       Editar
                     </button>
                     <button
                       onClick={() => handleEliminar(receta)}
-                      className="text-red-400 text-xs font-medium hover:underline hover:text-red-600"
+                      className="text-xs font-medium hover:underline"
+                      style={{ color: '#EF4444' }}
                     >
                       Eliminar
                     </button>
@@ -300,15 +313,23 @@ export default function RecetasPage() {
       {/* ── Modal crear / editar ── */}
       {modalAbierto && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
-            <h2 className="text-lg font-bold text-pragma-texto mb-5">
+          <div
+            className="w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 backdrop-blur-[24px]"
+            style={{
+              background: 'rgba(255, 255, 255, 0.85)',
+              border: '1px solid rgba(255, 255, 255, 0.60)',
+              borderRadius: '20px',
+              boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
+            }}
+          >
+            <h2 className="text-lg font-bold mb-5" style={{ color: '#1A1A2E' }}>
               {recetaEditando ? 'Editar receta' : 'Nueva receta'}
             </h2>
 
             <div className="space-y-5">
               {/* Nombre */}
               <div>
-                <label className="block text-sm font-medium text-pragma-texto mb-1">Nombre</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A2E' }}>Nombre</label>
                 <input
                   type="text"
                   value={form.nombre}
@@ -321,7 +342,7 @@ export default function RecetasPage() {
 
               {/* Unidad */}
               <div>
-                <label className="block text-sm font-medium text-pragma-texto mb-1">Unidad</label>
+                <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A2E' }}>Unidad</label>
                 <UnidadInput
                   key={unidadKey}
                   value={form.unidad_medida}
@@ -333,11 +354,11 @@ export default function RecetasPage() {
               {/* Ingredientes */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-medium text-pragma-texto">
+                  <label className="block text-sm font-medium" style={{ color: '#1A1A2E' }}>
                     Ingredientes
                   </label>
                   {ingredientesForm.length > 0 && (
-                    <span className="text-xs text-pragma-textoClaro">
+                    <span className="text-xs" style={{ color: '#6B7080' }}>
                       {ingredientesForm.filter((i) => i.insumo_id).length} insumo
                       {ingredientesForm.filter((i) => i.insumo_id).length !== 1 ? 's' : ''}
                     </span>
@@ -345,24 +366,37 @@ export default function RecetasPage() {
                 </div>
 
                 {ingredientesForm.length === 0 ? (
-                  <div className="text-sm text-pragma-textoClaro text-center py-6 bg-pragma-fondo rounded-lg border border-pragma-superficie border-dashed">
+                  <div
+                    className="text-sm text-center py-6 rounded-2xl border-dashed border"
+                    style={{
+                      color: '#6B7080',
+                      background: 'rgba(255,255,255,0.40)',
+                      borderColor: 'rgba(0,0,0,0.10)',
+                    }}
+                  >
                     Sin ingredientes todavía.
                   </div>
                 ) : (
-                  <div className="bg-pragma-fondo rounded-lg border border-pragma-superficie overflow-hidden">
+                  <div
+                    className="rounded-2xl overflow-hidden"
+                    style={{
+                      background: 'rgba(255,255,255,0.40)',
+                      border: '1px solid rgba(0,0,0,0.08)',
+                    }}
+                  >
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="bg-pragma-superficie/60">
-                          <th className="px-3 py-2 text-left text-xs font-medium text-pragma-textoClaro uppercase tracking-wider">
+                        <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                          <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider" style={{ color: '#9CA3AF' }}>
                             Insumo
                           </th>
-                          <th className="px-3 py-2 text-right text-xs font-medium text-pragma-textoClaro uppercase tracking-wider w-24">
+                          <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider w-24" style={{ color: '#9CA3AF' }}>
                             Cantidad
                           </th>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-pragma-textoClaro uppercase tracking-wider w-16">
+                          <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wider w-16" style={{ color: '#9CA3AF' }}>
                             Unidad
                           </th>
-                          <th className="px-3 py-2 text-right text-xs font-medium text-pragma-textoClaro uppercase tracking-wider w-28">
+                          <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider w-28" style={{ color: '#9CA3AF' }}>
                             Subtotal
                           </th>
                           <th className="px-3 py-2 w-10" />
@@ -375,7 +409,10 @@ export default function RecetasPage() {
                             ? ing.cantidad * insumoSel.precio_unitario
                             : 0;
                           return (
-                            <tr key={idx} className="border-t border-pragma-superficie/40 bg-white">
+                            <tr
+                              key={idx}
+                              style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}
+                            >
                               <td className="px-3 py-2">
                                 <select
                                   value={ing.insumo_id}
@@ -408,17 +445,18 @@ export default function RecetasPage() {
                                   className={`${INPUT_ING} text-right font-mono`}
                                 />
                               </td>
-                              <td className="px-3 py-2 text-pragma-textoClaro text-xs">
+                              <td className="px-3 py-2 text-xs" style={{ color: '#9CA3AF' }}>
                                 {insumoSel?.unidad_medida ?? '—'}
                               </td>
-                              <td className="px-3 py-2 text-right font-mono text-pragma-totales text-xs font-semibold tabular-nums">
+                              <td className="px-3 py-2 text-right font-mono font-semibold text-xs tabular-nums" style={{ color: '#1A1A2E' }}>
                                 {ing.insumo_id ? formatPrecio(subtotalParcial) : '—'}
                               </td>
                               <td className="px-3 py-2 text-center">
                                 <button
                                   onClick={() => quitarIngrediente(idx)}
                                   title="Quitar ingrediente"
-                                  className="text-xl leading-none text-pragma-textoClaro hover:text-red-500 transition-colors"
+                                  className="text-xl leading-none transition-colors"
+                                  style={{ color: '#9CA3AF' }}
                                 >
                                   ×
                                 </button>
@@ -433,25 +471,35 @@ export default function RecetasPage() {
 
                 <button
                   onClick={agregarIngrediente}
-                  className="mt-2 text-sm text-pragma-accent font-medium hover:underline"
+                  className="mt-2 text-sm font-medium hover:underline"
+                  style={{ color: '#6B7080' }}
                 >
                   + Agregar ingrediente
                 </button>
               </div>
 
               {/* Precio calculado en tiempo real */}
-              <div className="flex items-center justify-between bg-pragma-totales/10 border border-pragma-totales/20 rounded-lg px-4 py-3">
-                <span className="text-sm font-medium text-pragma-texto">
+              <div
+                className="flex items-center justify-between rounded-2xl px-4 py-3"
+                style={{
+                  background: 'rgba(200,230,76,0.12)',
+                  border: '1px solid rgba(200,230,76,0.30)',
+                }}
+              >
+                <span className="text-sm font-medium" style={{ color: '#1A1A2E' }}>
                   Precio unitario calculado
                 </span>
-                <span className="text-xl font-bold text-pragma-totales font-mono tabular-nums">
+                <span className="text-xl font-bold font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
                   {formatPrecio(calcularPrecioForm())}
                 </span>
               </div>
             </div>
 
             {errorModal && (
-              <div className="mt-4 bg-red-50 border border-red-200 rounded-md px-3 py-2 text-sm text-red-700">
+              <div
+                className="mt-4 rounded-[10px] px-3 py-2 text-sm"
+                style={{ background: '#FEE2E2', color: '#EF4444' }}
+              >
                 {errorModal}
               </div>
             )}
@@ -460,14 +508,15 @@ export default function RecetasPage() {
               <button
                 onClick={cerrarModal}
                 disabled={guardando}
-                className="px-4 py-2 text-sm font-medium text-pragma-textoClaro hover:text-pragma-texto transition-colors disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+                style={{ color: '#6B7080' }}
               >
                 Cancelar
               </button>
               <button
                 onClick={handleGuardar}
                 disabled={guardando || !form.nombre.trim() || !form.unidad_medida}
-                className="bg-pragma-accent text-white px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-60"
+                className="bg-[#C8E64C] text-[#2A3300] hover:bg-[#B8D63C] px-5 py-2 rounded-full text-sm font-semibold transition-colors disabled:opacity-50"
               >
                 {guardando
                   ? 'Guardando…'
