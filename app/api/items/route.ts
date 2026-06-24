@@ -8,7 +8,28 @@ const ITEM_SELECT = `
     nombre,
     unidad_medida,
     created_at,
-    updated_at
+    updated_at,
+    ingredientes:receta_insumos (
+      id,
+      receta_id,
+      insumo_id,
+      cantidad,
+      created_at,
+      insumo:insumos (
+        id,
+        nombre,
+        unidad_medida,
+        tipo,
+        precio_unitario,
+        created_at,
+        updated_at
+      )
+    )
+  ),
+  mediciones (
+    id,
+    item_id,
+    cantidad_calculada
   )
 `;
 

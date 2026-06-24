@@ -78,8 +78,15 @@ export interface RecetaConInsumos extends Receta {
   precio_unitario: number;
 }
 
+export interface RecetaConIngredientes extends Receta {
+  ingredientes: Array<RecetaInsumo & { insumo: Insumo }>;
+}
+
+export type MedicionResumen = Pick<Medicion, 'id' | 'item_id' | 'cantidad_calculada'>;
+
 export interface ItemConReceta extends Item {
-  receta?: Receta | null;
+  receta?: RecetaConIngredientes | null;
+  mediciones: MedicionResumen[];
 }
 
 export interface ItemCompleto extends Item {

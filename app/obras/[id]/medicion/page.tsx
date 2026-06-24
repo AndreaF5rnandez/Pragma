@@ -47,13 +47,11 @@ function medicionAForm(m: Medicion): FilaForm {
 
 function SeccionItem({
   item,
-  recetas,
   onSubtotalChange,
   onEditar,
   onEliminar,
 }: {
   item: ItemConReceta;
-  recetas: RecetaConInsumos[];
   onSubtotalChange: (itemId: string, subtotal: number) => void;
   onEditar: () => void;
   onEliminar: () => void;
@@ -69,9 +67,9 @@ function SeccionItem({
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<FilaForm>(FILA_INICIAL);
 
-  const recetaCompleta = recetas.find((r) => r.id === item.receta_id);
-  const precioUnitario = recetaCompleta ? calcularPrecioReceta(recetaCompleta.ingredientes) : 0;
-  const cantidadTotal = mediciones.reduce((sum, m) => sum + m.cantidad_calculada, 0);
+  const precioUnitario = item.receta ? calcularPrecioReceta(item.receta.ingredientes) : 0;
+  const medicionesBase: Array<{ cantidad_calculada: number }> = cargando ? item.mediciones : mediciones;
+  const cantidadTotal = medicionesBase.reduce((sum, m) => sum + m.cantidad_calculada, 0);
   const subtotal = cantidadTotal * precioUnitario;
 
   useEffect(() => {
@@ -473,7 +471,6 @@ function ContenidoRubro({
             <SeccionItem
               key={item.id}
               item={item}
-              recetas={recetas}
               onSubtotalChange={handleSubtotalItem}
               onEditar={() => abrirEditar(item)}
               onEliminar={() => handleEliminarItem(item)}
@@ -770,7 +767,7 @@ export default function MedicionPage() {
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
             borderLeft: '1px solid rgba(0, 0, 0, 0.10)',
-            borderRight: '1px solid rgba(255, 255, 255, 0.60)',
+            borderRight: '1px solid rgba(0, 0, 0, 0.08)',
           }}
         >
           {/* Header del panel */}
