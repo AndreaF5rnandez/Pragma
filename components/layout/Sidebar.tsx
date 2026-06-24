@@ -41,7 +41,7 @@ function IconRecetas() {
 const NAV = [
   { href: '/obras',   label: 'Obras',    Icon: IconObras },
   { href: '/insumos', label: 'Insumos',  Icon: IconInsumos },
-  { href: '/recetas', label: 'Recetas',  Icon: IconRecetas },
+  { href: '/recetas', label: 'Precios Unitarios',  Icon: IconRecetas },
 ];
 
 export default function Sidebar() {

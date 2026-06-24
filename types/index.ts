@@ -1,5 +1,6 @@
 export interface Insumo {
   id: string;
+  codigo?: string;
   nombre: string;
   unidad_medida: string;
   tipo: "material" | "mano_de_obra" | "equipo";

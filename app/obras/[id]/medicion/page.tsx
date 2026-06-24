@@ -210,7 +210,9 @@ function SeccionItem({
               <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider w-20" style={{ color: '#9CA3AF' }}>Largo</th>
               <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider w-20" style={{ color: '#9CA3AF' }}>Ancho</th>
               <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider w-20" style={{ color: '#9CA3AF' }}>Alto</th>
-              <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider w-24" style={{ color: '#9CA3AF' }}>Cantidad</th>
+              <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wider w-24" style={{ color: '#9CA3AF' }}>
+                Cantidad ({item.receta.unidad_medida})
+              </th>
               <th className="px-3 py-2 w-10" />
             </tr>
           </thead>
@@ -636,14 +638,14 @@ function ContenidoRubro({
 
               <div>
                 <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A2E' }}>
-                  Receta (APU)
+                  Precio Unitario
                 </label>
                 <select
                   value={formItem.receta_id}
                   onChange={(e) => setFormItem((f) => ({ ...f, receta_id: e.target.value }))}
                   className={INPUT_MODAL}
                 >
-                  <option value="">— Elegir receta —</option>
+                  <option value="">— Elegir precio unitario —</option>
                   {recetas.map((r) => (
                     <option key={r.id} value={r.id}>
                       {r.nombre} ({r.unidad_medida})

@@ -32,6 +32,7 @@ export function useInsumos(tipo?: Insumo["tipo"]) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        codigo: datos.codigo,
         nombre: datos.nombre,
         unidad_medida: datos.unidad_medida,
         tipo: datos.tipo,
@@ -55,6 +56,7 @@ export function useInsumos(tipo?: Insumo["tipo"]) {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        codigo: datos.codigo,
         nombre: datos.nombre,
         unidad_medida: datos.unidad_medida,
         tipo: datos.tipo,

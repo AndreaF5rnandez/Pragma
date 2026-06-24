@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from("insumos")
-      .select("id, nombre, unidad_medida, tipo, precio_unitario, created_at, updated_at")
+      .select("id, codigo, nombre, unidad_medida, tipo, precio_unitario, created_at, updated_at")
       .order("nombre", { ascending: true });
 
     if (tipo) {
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
 
     const body =
       (await request.json()) as Partial<
-        Pick<Insumo, "nombre" | "unidad_medida" | "tipo" | "precio_unitario">
+        Pick<Insumo, "codigo" | "nombre" | "unidad_medida" | "tipo" | "precio_unitario">
       >;
 
     const errorValidacion = validarPayloadInsumo(body);
@@ -107,6 +107,10 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase
       .from("insumos")
       .insert({
+        codigo:
+          typeof body.codigo === "string" && body.codigo.trim() !== ""
+            ? body.codigo.trim()
+            : null,
         nombre: body.nombre!.trim(),
         unidad_medida: body.unidad_medida!.trim(),
         tipo: body.tipo!,
@@ -116,7 +120,7 @@ export async function POST(request: NextRequest) {
             : Number(body.precio_unitario),
         user_id: user.id,
       })
-      .select("id, nombre, unidad_medida, tipo, precio_unitario, created_at, updated_at")
+      .select("id, codigo, nombre, unidad_medida, tipo, precio_unitario, created_at, updated_at")
       .single();
 
     if (error) {

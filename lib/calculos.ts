@@ -22,27 +22,27 @@ export function calcularPrecioReceta(
 }
 
 /**
- * Calcula la cantidad de una medicion multiplicando las dimensiones disponibles.
+ * Calcula la cantidad de una medicion: número de partes × largo × ancho × alto.
  *
- * @param dim1 Primera dimension obligatoria.
- * @param dim2 Segunda dimension opcional.
- * @param dim3 Tercera dimension opcional.
- * @returns La cantidad calculada segun las dimensiones informadas.
+ * Replica EXACTAMENTE la columna generada `cantidad_calculada` de PostgreSQL:
+ * las dimensiones faltantes se reemplazan por 1 (COALESCE), nunca por 0.
+ * La base de datos es la fuente de verdad; este helper sirve para previsualizar
+ * el parcial en el front antes de guardar.
+ *
+ * @param n Número de partes iguales (por defecto 1).
+ * @param largo Largo opcional; si falta se toma como 1.
+ * @param ancho Ancho opcional; si falta se toma como 1.
+ * @param alto Alto opcional; si falta se toma como 1.
+ * @returns El producto de los cuatro factores.
  */
 export function calcularCantidadMedicion(
-  dim1: number,
-  dim2?: number,
-  dim3?: number,
+  n: number = 1,
+  largo?: number,
+  ancho?: number,
+  alto?: number,
 ): number {
-  if (typeof dim2 !== "number") {
-    return dim1;
-  }
-
-  if (typeof dim3 !== "number") {
-    return dim1 * dim2;
-  }
-
-  return dim1 * dim2 * dim3;
+  const factor = (v?: number) => (typeof v === "number" ? v : 1);
+  return factor(n) * factor(largo) * factor(ancho) * factor(alto);
 }
 
 /**

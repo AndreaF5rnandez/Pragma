@@ -45,11 +45,28 @@ const FILTROS: { valor: Insumo['tipo'] | undefined; etiqueta: string }[] = [
   { valor: 'equipo',       etiqueta: 'Equipos' },
 ];
 
+/* Prefijo de código sugerido según el tipo. La categoría real vive en `tipo`;
+   el prefijo es solo una ayuda editable para que los códigos queden ordenados. */
+const PREFIJO_TIPO: Record<Insumo['tipo'], string> = {
+  material: 'M-',
+  mano_de_obra: 'MO-',
+  equipo: 'E-',
+};
+const PREFIJOS = new Set(Object.values(PREFIJO_TIPO));
+
+/* Aplica el prefijo del nuevo tipo solo si el código está vacío o es un prefijo
+   suelto (sin número todavía); si el usuario ya escribió un código, lo respeta. */
+function sugerirCodigo(codigoActual: string | undefined, nuevoTipo: Insumo['tipo']): string {
+  const actual = codigoActual ?? '';
+  return actual === '' || PREFIJOS.has(actual) ? PREFIJO_TIPO[nuevoTipo] : actual;
+}
+
 /* ─── Helpers ──────────────────────────────────────────────────────────────── */
 
 type FormData = Omit<Insumo, 'id' | 'created_at' | 'updated_at'>;
 
 const FORM_INICIAL: FormData = {
+  codigo: '',
   nombre: '',
   unidad_medida: '',
   tipo: 'material',
@@ -133,8 +150,19 @@ function UnidadInput({
 
 export default function InsumosPage() {
   const [filtroTipo, setFiltroTipo] = useState<Insumo['tipo'] | undefined>(undefined);
+  const [busqueda, setBusqueda] = useState('');
   const { insumos, cargando, error, crearInsumo, actualizarInsumo, eliminarInsumo } =
     useInsumos(filtroTipo);
+
+  /* Filtrado por código o nombre (case-insensitive), sobre lo ya filtrado por tipo */
+  const termino = busqueda.trim().toLowerCase();
+  const insumosFiltrados = termino
+    ? insumos.filter(
+        (i) =>
+          (i.codigo ?? '').toLowerCase().includes(termino) ||
+          i.nombre.toLowerCase().includes(termino),
+      )
+    : insumos;
 
   /* Modal — sólo para editar */
   const [insumoEditando, setInsumoEditando] = useState<Insumo | null>(null);
@@ -154,6 +182,7 @@ export default function InsumosPage() {
   function abrirEditar(insumo: Insumo) {
     setInsumoEditando(insumo);
     setForm({
+      codigo: insumo.codigo ?? '',
       nombre: insumo.nombre,
       unidad_medida: insumo.unidad_medida,
       tipo: insumo.tipo,
@@ -224,22 +253,31 @@ export default function InsumosPage() {
         </button>
       </div>
 
-      {/* Pills de filtro */}
-      <div className="flex gap-2 mb-6">
-        {FILTROS.map(({ valor, etiqueta }) => (
-          <button
-            key={etiqueta}
-            onClick={() => setFiltroTipo(valor)}
-            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
-              filtroTipo === valor
-                ? 'bg-[#C8E64C] text-[#2A3300]'
-                : 'text-[#6B7080] hover:bg-black/[0.06]'
-            }`}
-            style={filtroTipo !== valor ? { background: 'rgba(255,255,255,0.55)' } : undefined}
-          >
-            {etiqueta}
-          </button>
-        ))}
+      {/* Pills de filtro + buscador */}
+      <div className="flex items-center justify-between gap-4 mb-6">
+        <div className="flex gap-2">
+          {FILTROS.map(({ valor, etiqueta }) => (
+            <button
+              key={etiqueta}
+              onClick={() => setFiltroTipo(valor)}
+              className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                filtroTipo === valor
+                  ? 'bg-[#C8E64C] text-[#2A3300]'
+                  : 'text-[#6B7080] hover:bg-black/[0.06]'
+              }`}
+              style={filtroTipo !== valor ? { background: 'rgba(255,255,255,0.55)' } : undefined}
+            >
+              {etiqueta}
+            </button>
+          ))}
+        </div>
+        <input
+          type="text"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          placeholder="Buscar por código o nombre…"
+          className="w-64 border border-black/[0.12] rounded-full px-4 py-1.5 text-sm text-[#1A1A2E] bg-white/60 backdrop-blur-[8px] focus:outline-none focus:border-[#C8E64C] focus:shadow-[0_0_0_3px_rgba(200,230,76,0.2)] transition-all placeholder:text-[#9CA3AF]"
+        />
       </div>
 
       {cargando ? (
@@ -263,19 +301,20 @@ export default function InsumosPage() {
           <table className="w-full text-sm">
             <thead>
               <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider w-[30%]" style={{ color: '#9CA3AF' }}>Nombre</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider w-[22%]" style={{ color: '#9CA3AF' }}>Unidad</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider w-[14%]" style={{ color: '#9CA3AF' }}>Tipo</th>
-                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider w-[18%]" style={{ color: '#9CA3AF' }}>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider w-[12%]" style={{ color: '#9CA3AF' }}>Código</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider w-[26%]" style={{ color: '#9CA3AF' }}>Nombre</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider w-[18%]" style={{ color: '#9CA3AF' }}>Unidad</th>
+                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider w-[13%]" style={{ color: '#9CA3AF' }}>Tipo</th>
+                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider w-[16%]" style={{ color: '#9CA3AF' }}>
                   Precio unitario
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider w-[16%]" style={{ color: '#9CA3AF' }}>
+                <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider w-[15%]" style={{ color: '#9CA3AF' }}>
                   Acciones
                 </th>
               </tr>
             </thead>
             <tbody>
-              {insumos.map((insumo) => {
+              {insumosFiltrados.map((insumo) => {
                 const { etiqueta, bg, color } = TIPO_CONFIG[insumo.tipo];
                 return (
                   <tr
@@ -283,6 +322,9 @@ export default function InsumosPage() {
                     className="hover:bg-black/[0.02] transition-colors"
                     style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}
                   >
+                    <td className="px-4 py-3 font-mono text-xs" style={{ color: insumo.codigo ? '#6B7080' : '#C7C7CC' }}>
+                      {insumo.codigo || '—'}
+                    </td>
                     <td className="px-4 py-3 font-medium" style={{ color: '#1A1A2E' }}>{insumo.nombre}</td>
                     <td className="px-4 py-3" style={{ color: '#6B7080' }}>{insumo.unidad_medida}</td>
                     <td className="px-4 py-3">
@@ -320,6 +362,15 @@ export default function InsumosPage() {
               <tr style={{ borderTop: '2px solid rgba(200,230,76,0.3)' }}>
                 <td className="px-4 py-2">
                   <input
+                    type="text"
+                    value={fila.codigo ?? ''}
+                    onChange={(e) => setFila((f) => ({ ...f, codigo: e.target.value }))}
+                    placeholder={PREFIJO_TIPO[fila.tipo]}
+                    className={`${INPUT_INLINE} font-mono text-xs`}
+                  />
+                </td>
+                <td className="px-4 py-2">
+                  <input
                     ref={nombreRef}
                     type="text"
                     value={fila.nombre}
@@ -339,9 +390,14 @@ export default function InsumosPage() {
                 <td className="px-4 py-2">
                   <select
                     value={fila.tipo}
-                    onChange={(e) =>
-                      setFila((f) => ({ ...f, tipo: e.target.value as Insumo['tipo'] }))
-                    }
+                    onChange={(e) => {
+                      const nuevoTipo = e.target.value as Insumo['tipo'];
+                      setFila((f) => ({
+                        ...f,
+                        tipo: nuevoTipo,
+                        codigo: sugerirCodigo(f.codigo, nuevoTipo),
+                      }));
+                    }}
                     className={INPUT_INLINE}
                   >
                     <option value="material">Material</option>
@@ -384,7 +440,7 @@ export default function InsumosPage() {
 
               {errorFila && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-2">
+                  <td colSpan={6} className="px-4 py-2">
                     <div
                       className="rounded-[10px] px-3 py-1.5 text-xs"
                       style={{ background: '#FEE2E2', color: '#EF4444' }}
@@ -415,6 +471,17 @@ export default function InsumosPage() {
 
             <div className="space-y-4">
               <div>
+                <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A2E' }}>Código</label>
+                <input
+                  type="text"
+                  value={form.codigo ?? ''}
+                  onChange={(e) => setForm((f) => ({ ...f, codigo: e.target.value }))}
+                  className={`${INPUT_MODAL} font-mono`}
+                  placeholder={`Ej: ${PREFIJO_TIPO[form.tipo]}001 (opcional)`}
+                />
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A2E' }}>Nombre</label>
                 <input
                   type="text"
@@ -439,9 +506,14 @@ export default function InsumosPage() {
                 <label className="block text-sm font-medium mb-1" style={{ color: '#1A1A2E' }}>Tipo</label>
                 <select
                   value={form.tipo}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, tipo: e.target.value as Insumo['tipo'] }))
-                  }
+                  onChange={(e) => {
+                    const nuevoTipo = e.target.value as Insumo['tipo'];
+                    setForm((f) => ({
+                      ...f,
+                      tipo: nuevoTipo,
+                      codigo: sugerirCodigo(f.codigo, nuevoTipo),
+                    }));
+                  }}
                   className={INPUT_MODAL}
                 >
                   <option value="material">Material</option>

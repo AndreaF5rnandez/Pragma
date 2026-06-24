@@ -55,7 +55,7 @@ export async function GET(
     const supabase = createSupabaseServerClient();
     const { data, error } = await supabase
       .from("insumos")
-      .select("id, nombre, unidad_medida, tipo, precio_unitario, created_at, updated_at")
+      .select("id, codigo, nombre, unidad_medida, tipo, precio_unitario, created_at, updated_at")
       .eq("id", params.id)
       .maybeSingle();
 
@@ -87,7 +87,7 @@ export async function PUT(
     const supabase = createSupabaseServerClient();
     const body =
       (await request.json()) as Partial<
-        Pick<Insumo, "nombre" | "unidad_medida" | "tipo" | "precio_unitario">
+        Pick<Insumo, "codigo" | "nombre" | "unidad_medida" | "tipo" | "precio_unitario">
       >;
 
     const errorValidacion = validarPayloadInsumo(body);
@@ -99,6 +99,10 @@ export async function PUT(
     const { data, error } = await supabase
       .from("insumos")
       .update({
+        codigo:
+          typeof body.codigo === "string" && body.codigo.trim() !== ""
+            ? body.codigo.trim()
+            : null,
         nombre: body.nombre!.trim(),
         unidad_medida: body.unidad_medida!.trim(),
         tipo: body.tipo!,
@@ -108,7 +112,7 @@ export async function PUT(
             : Number(body.precio_unitario),
       })
       .eq("id", params.id)
-      .select("id, nombre, unidad_medida, tipo, precio_unitario, created_at, updated_at")
+      .select("id, codigo, nombre, unidad_medida, tipo, precio_unitario, created_at, updated_at")
       .maybeSingle();
 
     if (error) {

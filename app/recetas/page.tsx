@@ -230,12 +230,12 @@ export default function RecetasPage() {
     <div className="p-6">
       {/* Barra superior */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold" style={{ color: '#1A1A2E' }}>Recetas (APU)</h1>
+        <h1 className="text-2xl font-bold" style={{ color: '#1A1A2E' }}>Precios Unitarios</h1>
         <button
           onClick={abrirCrear}
           className="bg-[#C8E64C] text-[#2A3300] hover:bg-[#B8D63C] px-5 py-2 rounded-full text-sm font-semibold transition-colors"
         >
-          + Nueva receta
+          + Nuevo precio unitario
         </button>
       </div>
 
@@ -251,7 +251,7 @@ export default function RecetasPage() {
         </div>
       ) : recetas.length === 0 ? (
         <p className="text-center mt-20 text-sm" style={{ color: '#6B7080' }}>
-          No hay recetas todavía. Creá la primera con el botón de arriba.
+          No hay precios unitarios todavía. Creá el primero con el botón de arriba.
         </p>
       ) : (
         <div
@@ -323,7 +323,7 @@ export default function RecetasPage() {
             }}
           >
             <h2 className="text-lg font-bold mb-5" style={{ color: '#1A1A2E' }}>
-              {recetaEditando ? 'Editar receta' : 'Nueva receta'}
+              {recetaEditando ? 'Editar precio unitario' : 'Nuevo precio unitario'}
             </h2>
 
             <div className="space-y-5">
@@ -522,7 +522,7 @@ export default function RecetasPage() {
                   ? 'Guardando…'
                   : recetaEditando
                   ? 'Guardar cambios'
-                  : 'Crear receta'}
+                  : 'Crear precio unitario'}
               </button>
             </div>
           </div>
