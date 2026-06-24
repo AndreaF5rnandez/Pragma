@@ -123,6 +123,10 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const supabase = createSupabaseServerClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+
     const body =
       (await request.json()) as Partial<Pick<Receta, "nombre" | "unidad_medida">> & {
         ingredientes?: Array<Pick<RecetaInsumo, "insumo_id" | "cantidad">>;
@@ -139,6 +143,7 @@ export async function POST(request: NextRequest) {
       .insert({
         nombre: body.nombre!.trim(),
         unidad_medida: body.unidad_medida!.trim(),
+        user_id: user.id,
       })
       .select("id")
       .single();

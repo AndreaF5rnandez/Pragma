@@ -44,6 +44,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const supabase = createSupabaseServerClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+
     const body = await request.json();
 
     const { nombre, cliente, direccion, fecha_inicio } = body;
@@ -73,7 +77,7 @@ export async function POST(request: NextRequest) {
 
     const { data, error } = await supabase
       .from("obras")
-      .insert(nuevaObra)
+      .insert({ ...nuevaObra, user_id: user.id })
       .select()
       .single();
 
