@@ -11,25 +11,15 @@ type RubroPresupuesto = Rubro & { items: ItemPresupuesto[] };
 const TOTALES_VACIOS = { subtotal: 0, gastos_generales: 0, beneficio: 0, impuestos: 0, total: 0 };
 
 // GET /api/presupuesto/[obraId]
-// Query params opcionales: ?gastos_generales=10&beneficio=15&impuestos=21
-// Los porcentajes se expresan como números enteros (10 = 10%)
+// Los porcentajes de gastos generales, beneficio e impuestos se leen de la
+// obra (columnas gastos_generales_pct, beneficio_pct, impuestos_pct), no de
+// valores fijos en el código.
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { obraId: string } },
 ) {
   try {
     const supabase = createSupabaseServerClient();
-    const { searchParams } = new URL(request.url);
-
-    const pctGastosGenerales = Number(searchParams.get("gastos_generales") ?? 10);
-    const pctBeneficio = Number(searchParams.get("beneficio") ?? 15);
-    const pctImpuestos = Number(searchParams.get("impuestos") ?? 21);
-
-    const coeficientes = {
-      gastos_generales: pctGastosGenerales,
-      beneficio: pctBeneficio,
-      impuestos: pctImpuestos,
-    };
 
     // Verificar que la obra existe
     const { data: obra, error: obraError } = await supabase
@@ -41,6 +31,16 @@ export async function GET(
     if (obraError || !obra) {
       return NextResponse.json({ error: "Obra no encontrada" }, { status: 404 });
     }
+
+    const pctGastosGenerales = Number(obra.gastos_generales_pct ?? 10);
+    const pctBeneficio = Number(obra.beneficio_pct ?? 15);
+    const pctImpuestos = Number(obra.impuestos_pct ?? 21);
+
+    const coeficientes = {
+      gastos_generales: pctGastosGenerales,
+      beneficio: pctBeneficio,
+      impuestos: pctImpuestos,
+    };
 
     // Traer rubros con items, recetas (ingredientes+insumos) y mediciones
     const { data: rubrosData, error: rubrosError } = await supabase

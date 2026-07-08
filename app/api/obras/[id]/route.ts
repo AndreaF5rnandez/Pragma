@@ -42,7 +42,16 @@ export async function PUT(
     const supabase = createSupabaseServerClient();
     const body = await request.json();
 
-    const { nombre, cliente, direccion, fecha_inicio, estado } = body;
+    const {
+      nombre,
+      cliente,
+      direccion,
+      fecha_inicio,
+      estado,
+      gastos_generales_pct,
+      beneficio_pct,
+      impuestos_pct,
+    } = body;
 
     // Validaciones
     if (!nombre || nombre.trim() === "") {
@@ -67,12 +76,28 @@ export async function PUT(
       );
     }
 
+    for (const [campo, valor] of [
+      ["gastos_generales_pct", gastos_generales_pct],
+      ["beneficio_pct", beneficio_pct],
+      ["impuestos_pct", impuestos_pct],
+    ] as const) {
+      if (valor !== undefined && (typeof valor !== "number" || Number.isNaN(valor) || valor < 0)) {
+        return NextResponse.json(
+          { error: `El campo ${campo} debe ser un número mayor o igual a 0` },
+          { status: 400 }
+        );
+      }
+    }
+
     const obraActualizada: Partial<Obra> = {
       nombre: nombre.trim(),
       cliente: cliente.trim(),
       ...(direccion !== undefined && { direccion: direccion?.trim() || null }),
       ...(fecha_inicio !== undefined && { fecha_inicio: fecha_inicio || null }),
       ...(estado && { estado }),
+      ...(gastos_generales_pct !== undefined && { gastos_generales_pct }),
+      ...(beneficio_pct !== undefined && { beneficio_pct }),
+      ...(impuestos_pct !== undefined && { impuestos_pct }),
     };
 
     const { data, error } = await supabase

@@ -32,6 +32,9 @@ export interface Obra {
   direccion?: string;
   fecha_inicio?: string;
   estado: "activa" | "pausada" | "finalizada";
+  gastos_generales_pct?: number;
+  beneficio_pct?: number;
+  impuestos_pct?: number;
   created_at: string;
   updated_at: string;
 }

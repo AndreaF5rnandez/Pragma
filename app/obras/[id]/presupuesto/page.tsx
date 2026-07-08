@@ -1,8 +1,9 @@
 'use client';
 
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { calcularTotalesPresupuesto } from '@/lib/calculos';
 import type { Obra, PresupuestoLinea } from '@/types';
 
 /* ─── Tipos locales ────────────────────────────────────────────────────────── */
@@ -80,6 +81,83 @@ const GLASS_CARD: React.CSSProperties = {
   boxShadow: '0 8px 32px rgba(0, 0, 0, 0.06)',
 };
 
+/* ─── EditablePct ──────────────────────────────────────────────────────────── */
+/* Porcentaje editable inline: click para convertir en input numérico, y
+ * autosave (sin botón) al perder foco o confirmar con Enter. */
+
+function EditablePct({
+  label,
+  valor,
+  monto,
+  guardando,
+  onGuardar,
+}: {
+  label: string;
+  valor: number;
+  monto: number;
+  guardando: boolean;
+  onGuardar: (nuevoValor: number) => void;
+}) {
+  const [editando, setEditando] = useState(false);
+  const [borrador, setBorrador] = useState(String(valor));
+
+  function entrarEdicion() {
+    setBorrador(String(valor));
+    setEditando(true);
+  }
+
+  function confirmar() {
+    setEditando(false);
+    const num = Number(borrador);
+    if (Number.isNaN(num) || num < 0 || num === valor) return;
+    onGuardar(num);
+  }
+
+  return (
+    <div className="px-5 py-3 flex justify-between items-center" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+      <span className="text-sm flex items-center gap-1" style={{ color: '#6B7080' }}>
+        {label} (
+        {editando ? (
+          <input
+            autoFocus
+            type="number"
+            min="0"
+            step="0.01"
+            value={borrador}
+            onChange={(e) => setBorrador(e.target.value)}
+            onBlur={confirmar}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { e.preventDefault(); confirmar(); }
+              if (e.key === 'Escape') { setEditando(false); }
+            }}
+            className="w-14 text-right font-mono tabular-nums border rounded-[6px] px-1 py-0.5 focus:outline-none"
+            style={{
+              color: '#1A1A2E',
+              borderColor: '#C8E64C',
+              boxShadow: '0 0 0 3px rgba(200,230,76,0.2)',
+              background: 'rgba(255,255,255,0.8)',
+            }}
+          />
+        ) : (
+          <button
+            onClick={entrarEdicion}
+            className="font-mono tabular-nums underline decoration-dotted hover:opacity-70 transition-opacity"
+            style={{ color: '#6B7080' }}
+            title="Click para editar"
+          >
+            {valor}
+          </button>
+        )}
+        %)
+        {guardando && <span className="text-xs ml-1" style={{ color: '#9CA3AF' }}>guardando…</span>}
+      </span>
+      <span className="text-sm font-medium font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
+        {formatPrecio(monto)}
+      </span>
+    </div>
+  );
+}
+
 /* ─── Página ───────────────────────────────────────────────────────────────── */
 
 export default function PresupuestoPage() {
@@ -89,6 +167,12 @@ export default function PresupuestoPage() {
   const [datos, setDatos] = useState<PresupuestoResponse | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Coeficientes editables: se seedean desde la obra al cargar y a partir de
+  // ahí viven en el cliente, para recalcular el total al instante sin refetch.
+  const [coeficientes, setCoeficientes] = useState<Coeficientes | null>(null);
+  const [guardandoCampo, setGuardandoCampo] = useState<keyof Coeficientes | null>(null);
+  const [errorGuardado, setErrorGuardado] = useState<string | null>(null);
 
   useEffect(() => {
     let activo = true;
@@ -100,13 +184,68 @@ export default function PresupuestoPage() {
         const json: unknown = await res.json();
         if (!res.ok)
           throw new Error((json as { error: string }).error ?? 'Error al cargar presupuesto');
-        if (activo) setDatos(json as PresupuestoResponse);
+        const respuesta = json as PresupuestoResponse;
+        if (activo) {
+          setDatos(respuesta);
+          setCoeficientes(respuesta.coeficientes);
+        }
       })
       .catch((err: Error) => { if (activo) setError(err.message); })
       .finally(() => { if (activo) setCargando(false); });
 
     return () => { activo = false; };
   }, [obraId]);
+
+  // Totales recalculados en el cliente a partir de las líneas ya cargadas y
+  // los coeficientes actuales (editados o no), sin volver a pedirle nada al servidor.
+  const totales = useMemo(() => {
+    if (!datos || !coeficientes) return null;
+    return calcularTotalesPresupuesto(
+      datos.lineas,
+      coeficientes.gastos_generales,
+      coeficientes.beneficio,
+      coeficientes.impuestos,
+    );
+  }, [datos, coeficientes]);
+
+  async function guardarCoeficiente(campo: keyof Coeficientes, nuevoValor: number) {
+    if (!datos || !coeficientes) return;
+    const anterior = coeficientes[campo];
+
+    // Optimista: se actualiza (y recalcula el total) antes de que vuelva la respuesta.
+    setCoeficientes((prev) => (prev ? { ...prev, [campo]: nuevoValor } : prev));
+    setGuardandoCampo(campo);
+    setErrorGuardado(null);
+
+    const campoDb: Record<keyof Coeficientes, string> = {
+      gastos_generales: 'gastos_generales_pct',
+      beneficio: 'beneficio_pct',
+      impuestos: 'impuestos_pct',
+    };
+
+    try {
+      const res = await fetch(`/api/obras/${obraId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: datos.obra.nombre,
+          cliente: datos.obra.cliente,
+          direccion: datos.obra.direccion,
+          fecha_inicio: datos.obra.fecha_inicio,
+          estado: datos.obra.estado,
+          [campoDb[campo]]: nuevoValor,
+        }),
+      });
+      const json: unknown = await res.json();
+      if (!res.ok) throw new Error((json as { error: string }).error ?? 'Error al guardar');
+    } catch (err) {
+      // Revertir si falló el guardado
+      setCoeficientes((prev) => (prev ? { ...prev, [campo]: anterior } : prev));
+      setErrorGuardado(err instanceof Error ? err.message : 'Error al guardar');
+    } finally {
+      setGuardandoCampo(null);
+    }
+  }
 
   const obraNombre = datos?.obra.nombre ?? '…';
 
@@ -170,7 +309,7 @@ export default function PresupuestoPage() {
               Ir al Cómputo
             </Link>
           </div>
-        ) : datos ? (
+        ) : datos && coeficientes && totales ? (
           <>
             {/* ── Tabla de rubros e ítems ── */}
             <div className="overflow-hidden mb-6" style={GLASS_CARD}>
@@ -250,41 +389,46 @@ export default function PresupuestoPage() {
                 <div className="px-5 py-3 flex justify-between items-center" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
                   <span className="text-sm" style={{ color: '#6B7080' }}>Subtotal de obra</span>
                   <span className="text-sm font-medium font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
-                    {formatPrecio(datos.totales.subtotal)}
+                    {formatPrecio(totales.subtotal)}
                   </span>
                 </div>
-                <div className="px-5 py-3 flex justify-between items-center" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-                  <span className="text-sm" style={{ color: '#6B7080' }}>
-                    Gastos generales ({datos.coeficientes.gastos_generales}%)
-                  </span>
-                  <span className="text-sm font-medium font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
-                    {formatPrecio(datos.totales.gastos_generales)}
-                  </span>
-                </div>
-                <div className="px-5 py-3 flex justify-between items-center" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-                  <span className="text-sm" style={{ color: '#6B7080' }}>
-                    Beneficio ({datos.coeficientes.beneficio}%)
-                  </span>
-                  <span className="text-sm font-medium font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
-                    {formatPrecio(datos.totales.beneficio)}
-                  </span>
-                </div>
-                <div className="px-5 py-3 flex justify-between items-center" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-                  <span className="text-sm" style={{ color: '#6B7080' }}>
-                    Impuestos ({datos.coeficientes.impuestos}%)
-                  </span>
-                  <span className="text-sm font-medium font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
-                    {formatPrecio(datos.totales.impuestos)}
-                  </span>
-                </div>
+
+                <EditablePct
+                  label="Gastos generales"
+                  valor={coeficientes.gastos_generales}
+                  monto={totales.gastos_generales}
+                  guardando={guardandoCampo === 'gastos_generales'}
+                  onGuardar={(v) => guardarCoeficiente('gastos_generales', v)}
+                />
+                <EditablePct
+                  label="Beneficio"
+                  valor={coeficientes.beneficio}
+                  monto={totales.beneficio}
+                  guardando={guardandoCampo === 'beneficio'}
+                  onGuardar={(v) => guardarCoeficiente('beneficio', v)}
+                />
+                <EditablePct
+                  label="Impuestos"
+                  valor={coeficientes.impuestos}
+                  monto={totales.impuestos}
+                  guardando={guardandoCampo === 'impuestos'}
+                  onGuardar={(v) => guardarCoeficiente('impuestos', v)}
+                />
+
                 <div className="px-5 py-4 flex justify-between items-center" style={{ background: 'rgba(200,230,76,0.15)' }}>
                   <span className="text-base font-bold" style={{ color: '#1A1A2E' }}>Total final</span>
                   <span className="text-2xl font-bold font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
-                    {formatPrecio(datos.totales.total)}
+                    {formatPrecio(totales.total)}
                   </span>
                 </div>
               </div>
             </div>
+
+            {errorGuardado && (
+              <div className="flex justify-end mt-2">
+                <p className="text-xs" style={{ color: '#EF4444' }}>{errorGuardado}</p>
+              </div>
+            )}
           </>
         ) : null}
       </div>
