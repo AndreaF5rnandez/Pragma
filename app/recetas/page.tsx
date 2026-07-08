@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRecetas } from '@/hooks/useRecetas';
 import { useInsumos } from '@/hooks/useInsumos';
+import { calcularPrecioReceta } from '@/lib/calculos';
 import type { Insumo, RecetaConInsumos } from '@/types';
 
 /* ─── Unidades predefinidas ────────────────────────────────────────────────── */
@@ -290,14 +291,6 @@ export default function RecetasPage() {
   const subtotalEquipo     = calcSubtotal(equipoForm);
   const precioTotal        = subtotalMateriales + subtotalMO + subtotalEquipo;
 
-  /* Precio calculado para la lista */
-  function calcularPrecioReceta(receta: RecetaConInsumos): number {
-    return receta.ingredientes.reduce(
-      (total, ing) => total + ing.cantidad * ing.insumo.precio_unitario,
-      0,
-    );
-  }
-
   /* ── Abrir / cerrar modal ── */
 
   function resetSecciones() {
@@ -442,7 +435,7 @@ export default function RecetasPage() {
                   <td className="px-4 py-3 font-medium" style={{ color: '#1A1A2E' }}>{receta.nombre}</td>
                   <td className="px-4 py-3" style={{ color: '#6B7080' }}>{receta.unidad_medida}</td>
                   <td className="px-4 py-3 text-right font-mono font-bold tabular-nums" style={{ color: '#1A1A2E' }}>
-                    {formatPrecio(calcularPrecioReceta(receta))}
+                    {formatPrecio(calcularPrecioReceta(receta.ingredientes))}
                   </td>
                   <td className="px-4 py-3 text-right space-x-4">
                     <button onClick={() => abrirEditar(receta)} className="text-xs font-medium hover:underline" style={{ color: '#C8E64C' }}>

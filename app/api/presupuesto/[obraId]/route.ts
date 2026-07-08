@@ -1,34 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { calcularPrecioReceta, calcularTotalesPresupuesto } from "@/lib/calculos";
 import type { Rubro, Item, Medicion, RecetaConInsumos, PresupuestoLinea } from "@/types";
 
 // Tipos locales para la respuesta anidada de Supabase
 type MedicionResumen = Pick<Medicion, "id" | "item_id" | "cantidad_calculada">;
 type ItemPresupuesto = Item & { receta?: RecetaConInsumos | null; mediciones: MedicionResumen[] };
 type RubroPresupuesto = Rubro & { items: ItemPresupuesto[] };
-
-function calcularPrecioReceta(ingredientes: RecetaConInsumos["ingredientes"]): number {
-  return ingredientes.reduce(
-    (total, ing) => total + ing.cantidad * ing.insumo.precio_unitario,
-    0,
-  );
-}
-
-function calcularTotalesPresupuesto(
-  lineas: PresupuestoLinea[],
-  pctGG: number,
-  pctBeneficio: number,
-  pctImpuestos: number,
-) {
-  const subtotal = lineas.reduce((t, l) => t + l.subtotal, 0);
-  const gastos_generales = subtotal * (pctGG / 100);
-  const baseBeneficio = subtotal + gastos_generales;
-  const beneficio = baseBeneficio * (pctBeneficio / 100);
-  const baseImpuestos = baseBeneficio + beneficio;
-  const impuestos = baseImpuestos * (pctImpuestos / 100);
-  const total = subtotal + gastos_generales + beneficio + impuestos;
-  return { subtotal, gastos_generales, beneficio, impuestos, total };
-}
 
 const TOTALES_VACIOS = { subtotal: 0, gastos_generales: 0, beneficio: 0, impuestos: 0, total: 0 };
 

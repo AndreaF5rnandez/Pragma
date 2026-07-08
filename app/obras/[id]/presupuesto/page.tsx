@@ -63,6 +63,23 @@ function agruparPorRubro(lineas: PresupuestoLinea[]): RubroAgrupado[] {
   return Array.from(map.values());
 }
 
+const MESH_GRADIENT = [
+  'radial-gradient(ellipse at 15% 80%, rgba(200, 230, 76, 0.12) 0%, transparent 50%)',
+  'radial-gradient(ellipse at 85% 20%, rgba(200, 180, 220, 0.15) 0%, transparent 50%)',
+  'radial-gradient(ellipse at 80% 85%, rgba(180, 220, 210, 0.12) 0%, transparent 50%)',
+  'radial-gradient(ellipse at 50% 50%, rgba(215, 210, 220, 0.3) 0%, transparent 70%)',
+  'linear-gradient(135deg, #D8D6DE 0%, #CDCBD5 50%, #D2D0D8 100%)',
+].join(', ');
+
+const GLASS_CARD: React.CSSProperties = {
+  background: 'rgba(255, 255, 255, 0.55)',
+  backdropFilter: 'blur(20px)',
+  WebkitBackdropFilter: 'blur(20px)',
+  border: '1px solid rgba(255, 255, 255, 0.60)',
+  borderRadius: '16px',
+  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.06)',
+};
+
 /* ─── Página ───────────────────────────────────────────────────────────────── */
 
 export default function PresupuestoPage() {
@@ -92,28 +109,38 @@ export default function PresupuestoPage() {
   }, [obraId]);
 
   const obraNombre = datos?.obra.nombre ?? '…';
-  const obraCliente = datos?.obra.cliente ?? '';
 
   return (
-    <div className="flex flex-col min-h-full">
-      {/* ── Barra de navegación ── */}
-      <header className="sticky top-0 z-10 bg-white border-b border-pragma-superficie px-6 h-12 flex items-center gap-4 shrink-0">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <span className="font-bold text-pragma-texto text-sm truncate">{obraNombre}</span>
-          {obraCliente && (
-            <span className="text-pragma-textoClaro text-sm shrink-0">· {obraCliente}</span>
-          )}
-        </div>
-        <nav className="flex gap-1 shrink-0">
+    <div
+      className="flex flex-col h-full"
+      style={{ backgroundColor: '#D5D4DC', background: MESH_GRADIENT }}
+    >
+      {/* ── Barra superior ── */}
+      <header
+        className="shrink-0 z-10 px-6 flex items-stretch gap-4"
+        style={{
+          height: '48px',
+          background: 'rgba(255, 255, 255, 0.80)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.50)',
+        }}
+      >
+        <span className="font-semibold text-sm truncate flex-1 flex items-center" style={{ color: '#1A1A2E' }}>
+          {obraNombre}
+        </span>
+        <nav className="flex h-full">
           <Link
             href={`/obras/${obraId}/medicion`}
-            className="px-4 py-1.5 rounded text-sm font-medium text-pragma-textoClaro hover:text-pragma-texto hover:bg-pragma-fondo transition-colors"
+            className="px-5 flex items-center text-sm font-medium border-b-2 border-transparent transition-colors"
+            style={{ color: '#6B7080' }}
           >
             Cómputo
           </Link>
           <Link
             href={`/obras/${obraId}/presupuesto`}
-            className="px-4 py-1.5 rounded text-sm font-medium bg-pragma-accent text-white"
+            className="px-5 flex items-center text-sm font-semibold border-b-2"
+            style={{ borderColor: '#1A1A2E', color: '#1A1A2E' }}
           >
             Presupuesto
           </Link>
@@ -121,23 +148,24 @@ export default function PresupuestoPage() {
       </header>
 
       {/* ── Cuerpo ── */}
-      <div className="flex-1 bg-pragma-fondo p-8">
+      <div className="flex-1 overflow-y-auto p-6">
         {cargando ? (
           <div className="flex items-center justify-center h-64">
-            <p className="text-pragma-textoClaro">Calculando presupuesto…</p>
+            <p className="text-sm" style={{ color: '#6B7080' }}>Calculando presupuesto…</p>
           </div>
         ) : error ? (
           <div className="flex items-center justify-center h-64">
-            <p className="text-red-600">{error}</p>
+            <p className="text-sm" style={{ color: '#EF4444' }}>{error}</p>
           </div>
         ) : datos && datos.lineas.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 gap-4">
-            <p className="text-pragma-textoClaro text-base">
+            <p className="text-sm" style={{ color: '#6B7080' }}>
               Esta obra no tiene mediciones cargadas todavía.
             </p>
             <Link
               href={`/obras/${obraId}/medicion`}
-              className="bg-pragma-accent text-white px-5 py-2.5 rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
+              className="px-5 py-2.5 text-sm font-semibold transition-opacity hover:opacity-80"
+              style={{ background: '#C8E64C', color: '#2A3300', borderRadius: '9999px' }}
             >
               Ir al Cómputo
             </Link>
@@ -145,115 +173,113 @@ export default function PresupuestoPage() {
         ) : datos ? (
           <>
             {/* ── Tabla de rubros e ítems ── */}
-            <div className="bg-white rounded-xl shadow-sm border border-pragma-superficie overflow-hidden mb-8">
+            <div className="overflow-hidden mb-6" style={GLASS_CARD}>
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-pragma-superficie/60 border-b border-pragma-superficie">
-                    <th className="px-4 py-3 text-left font-semibold text-pragma-texto">
+                  <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                    <th className="px-4 py-3 text-left" style={{ fontSize: '13px', fontWeight: 600, color: '#6B7080' }}>
                       Ítem
                     </th>
-                    <th className="px-3 py-3 text-center font-semibold text-pragma-texto w-20">
+                    <th className="px-3 py-3 text-center w-20" style={{ fontSize: '13px', fontWeight: 600, color: '#6B7080' }}>
                       Unidad
                     </th>
-                    <th className="px-3 py-3 text-right font-semibold text-pragma-texto w-32">
+                    <th className="px-3 py-3 text-right w-32" style={{ fontSize: '13px', fontWeight: 600, color: '#6B7080' }}>
                       Cantidad
                     </th>
-                    <th className="px-3 py-3 text-right font-semibold text-pragma-texto w-36">
+                    <th className="px-3 py-3 text-right w-36" style={{ fontSize: '13px', fontWeight: 600, color: '#6B7080' }}>
                       P. Unitario
                     </th>
-                    <th className="px-4 py-3 text-right font-semibold text-pragma-texto w-36">
+                    <th className="px-4 py-3 text-right w-36" style={{ fontSize: '13px', fontWeight: 600, color: '#6B7080' }}>
                       Subtotal
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {agruparPorRubro(datos.lineas).map((rubro, rubroIdx) => {
-                    const fondoRubro =
-                      rubroIdx % 2 === 0 ? 'bg-pragma-fondo' : 'bg-pragma-superficie/25';
-                    const fondoItem =
-                      rubroIdx % 2 === 0 ? 'bg-white' : 'bg-pragma-fondo/60';
+                  {agruparPorRubro(datos.lineas).map((rubro) => (
+                    <Fragment key={rubro.rubro_id}>
+                      {/* Cabecera del rubro */}
+                      <tr style={{ background: 'rgba(200,230,76,0.12)' }}>
+                        <td
+                          colSpan={4}
+                          className="px-4 py-2.5 font-bold"
+                          style={{ color: '#1A1A2E', borderTop: '1px solid rgba(0,0,0,0.06)' }}
+                        >
+                          {rubro.rubro_nombre}
+                        </td>
+                        <td
+                          className="px-4 py-2.5 text-right font-bold font-mono tabular-nums"
+                          style={{ color: '#1A1A2E', borderTop: '1px solid rgba(0,0,0,0.06)' }}
+                        >
+                          {formatPrecio(rubro.subtotal)}
+                        </td>
+                      </tr>
 
-                    return (
-                      <Fragment key={rubro.rubro_id}>
-                        {/* Cabecera del rubro */}
-                        <tr className={fondoRubro}>
-                          <td
-                            colSpan={4}
-                            className="px-4 py-2.5 font-bold text-pragma-texto border-t-2 border-pragma-superficie"
-                          >
-                            {rubro.rubro_nombre}
+                      {/* Ítems del rubro */}
+                      {rubro.lineas.map((linea) => (
+                        <tr
+                          key={linea.item_id}
+                          className="hover:bg-black/[0.02] transition-colors"
+                          style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}
+                        >
+                          <td className="px-4 py-2.5 pl-8" style={{ color: '#1A1A2E' }}>
+                            {linea.receta_nombre}
                           </td>
-                          <td className="px-4 py-2.5 text-right font-bold text-pragma-totales tabular-nums border-t-2 border-pragma-superficie">
-                            {formatPrecio(rubro.subtotal)}
+                          <td className="px-3 py-2.5 text-center" style={{ color: '#6B7080' }}>
+                            {linea.unidad}
+                          </td>
+                          <td className="px-3 py-2.5 text-right font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
+                            {formatNum(linea.cantidad_total)}
+                          </td>
+                          <td className="px-3 py-2.5 text-right font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
+                            {formatPrecio(linea.precio_unitario)}
+                          </td>
+                          <td className="px-4 py-2.5 text-right font-mono font-semibold tabular-nums" style={{ color: '#1A1A2E' }}>
+                            {formatPrecio(linea.subtotal)}
                           </td>
                         </tr>
-
-                        {/* Ítems del rubro */}
-                        {rubro.lineas.map((linea) => (
-                          <tr
-                            key={linea.item_id}
-                            className={`border-b border-pragma-superficie/40 ${fondoItem}`}
-                          >
-                            <td className="px-4 py-2.5 pl-8 text-pragma-texto">
-                              {linea.receta_nombre}
-                            </td>
-                            <td className="px-3 py-2.5 text-center text-pragma-textoClaro">
-                              {linea.unidad}
-                            </td>
-                            <td className="px-3 py-2.5 text-right tabular-nums text-pragma-texto">
-                              {formatNum(linea.cantidad_total)}
-                            </td>
-                            <td className="px-3 py-2.5 text-right tabular-nums text-pragma-texto">
-                              {formatPrecio(linea.precio_unitario)}
-                            </td>
-                            <td className="px-4 py-2.5 text-right tabular-nums font-medium text-pragma-texto">
-                              {formatPrecio(linea.subtotal)}
-                            </td>
-                          </tr>
-                        ))}
-                      </Fragment>
-                    );
-                  })}
+                      ))}
+                    </Fragment>
+                  ))}
                 </tbody>
               </table>
             </div>
 
             {/* ── Totales ── */}
             <div className="flex justify-end">
-              <div className="bg-white rounded-xl shadow-sm border border-pragma-superficie overflow-hidden w-full max-w-sm">
-                <div className="px-5 py-3 flex justify-between items-center border-b border-pragma-superficie/50">
-                  <span className="text-sm text-pragma-textoClaro">Subtotal de obra</span>
-                  <span className="text-sm font-medium text-pragma-texto tabular-nums">
+              <div className="overflow-hidden w-full max-w-sm" style={GLASS_CARD}>
+                <div className="px-5 py-3 flex justify-between items-center" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                  <span className="text-sm" style={{ color: '#6B7080' }}>Subtotal de obra</span>
+                  <span className="text-sm font-medium font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
                     {formatPrecio(datos.totales.subtotal)}
                   </span>
                 </div>
-                <div className="px-5 py-3 flex justify-between items-center border-b border-pragma-superficie/50">
-                  <span className="text-sm text-pragma-textoClaro">
+                <div className="px-5 py-3 flex justify-between items-center" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                  <span className="text-sm" style={{ color: '#6B7080' }}>
                     Gastos generales ({datos.coeficientes.gastos_generales}%)
                   </span>
-                  <span className="text-sm font-medium text-pragma-texto tabular-nums">
+                  <span className="text-sm font-medium font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
                     {formatPrecio(datos.totales.gastos_generales)}
                   </span>
                 </div>
-                <div className="px-5 py-3 flex justify-between items-center border-b border-pragma-superficie/50">
-                  <span className="text-sm text-pragma-textoClaro">
+                <div className="px-5 py-3 flex justify-between items-center" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                  <span className="text-sm" style={{ color: '#6B7080' }}>
                     Beneficio ({datos.coeficientes.beneficio}%)
                   </span>
-                  <span className="text-sm font-medium text-pragma-texto tabular-nums">
+                  <span className="text-sm font-medium font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
                     {formatPrecio(datos.totales.beneficio)}
                   </span>
                 </div>
-                <div className="px-5 py-3 flex justify-between items-center border-b border-pragma-superficie/50">
-                  <span className="text-sm text-pragma-textoClaro">
+                <div className="px-5 py-3 flex justify-between items-center" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                  <span className="text-sm" style={{ color: '#6B7080' }}>
                     Impuestos ({datos.coeficientes.impuestos}%)
                   </span>
-                  <span className="text-sm font-medium text-pragma-texto tabular-nums">
+                  <span className="text-sm font-medium font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
                     {formatPrecio(datos.totales.impuestos)}
                   </span>
                 </div>
-                <div className="px-5 py-4 flex justify-between items-center bg-pragma-totales/5">
-                  <span className="text-base font-bold text-pragma-totales">Total final</span>
-                  <span className="text-2xl font-bold text-pragma-totales tabular-nums">
+                <div className="px-5 py-4 flex justify-between items-center" style={{ background: 'rgba(200,230,76,0.15)' }}>
+                  <span className="text-base font-bold" style={{ color: '#1A1A2E' }}>Total final</span>
+                  <span className="text-2xl font-bold font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
                     {formatPrecio(datos.totales.total)}
                   </span>
                 </div>

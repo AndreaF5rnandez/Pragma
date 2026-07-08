@@ -1,0 +1,32 @@
+
+> presupuestador-obras@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 3.8s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 814ms (127 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (102kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (250kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ○ Compiling /api/obras ...
+ ✓ Compiled /api/obras in 634ms (120 modules)
+ GET /api/obras 200 in 1364ms
+ POST /api/obras 201 in 576ms
+ ✓ Compiled /api/rubros in 99ms (122 modules)
+ POST /api/rubros 201 in 706ms
+ ✓ Compiled /api/items in 182ms (124 modules)
+ POST /api/items 201 in 720ms
+ ✓ Compiled /api/mediciones in 98ms (126 modules)
+ POST /api/mediciones 201 in 388ms
+ GET /api/items?rubro_id=2b86db89-d92b-4ab3-978c-bb82bacac47b 200 in 343ms
+ ✓ Compiled /api/presupuesto/[obraId] in 69ms (127 modules)
+ GET /api/presupuesto/2d1bb25f-2ab3-4b2e-921f-ed17751e5a65 200 in 1181ms
+ GET /api/presupuesto/9b62d7e0-8f46-4fe2-8ab1-aec75973c284 200 in 574ms
+ ✓ Compiled /api/obras/[id] in 59ms (127 modules)
+ DELETE /api/obras/2d1bb25f-2ab3-4b2e-921f-ed17751e5a65?confirmar=true 500 in 996ms
+ ✓ Compiled /api/obras in 128ms (129 modules)
+ GET /api/obras 200 in 367ms
