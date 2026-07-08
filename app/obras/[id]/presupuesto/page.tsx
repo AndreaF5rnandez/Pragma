@@ -121,7 +121,7 @@ function EditablePct({
   }
 
   return (
-    <div className="px-5 py-3 flex justify-between items-center" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+    <div className="px-6 py-3 flex justify-between items-center" style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
       <span className="text-sm flex items-center gap-1" style={{ color: '#6B7080' }}>
         {label} (
         {editando ? (
@@ -166,9 +166,10 @@ function EditablePct({
 }
 
 /* ─── GastoGeneralRow ──────────────────────────────────────────────────────── */
-/* Línea de gasto general: concepto (input de texto siempre editable, autosave
- * al perder foco) y monto (click para editar, mismo patrón que EditablePct).
- * Las líneas predefinidas no muestran botón de eliminar. */
+/* Línea de gasto general en formato de dos columnas: concepto (input de texto
+ * siempre editable, autosave al perder foco) a la izquierda y monto (click
+ * para editar, mismo patrón que EditablePct) a la derecha. Las líneas
+ * predefinidas no muestran botón de eliminar. */
 
 function GastoGeneralRow({
   gasto,
@@ -209,7 +210,7 @@ function GastoGeneralRow({
   }
 
   return (
-    <div className="px-5 py-2.5 flex items-center gap-3" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+    <div className="px-6 py-2.5 flex items-center gap-3" style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
       <input
         type="text"
         value={concepto}
@@ -269,6 +270,9 @@ function GastoGeneralRow({
 }
 
 /* ─── Página ───────────────────────────────────────────────────────────────── */
+/* Documento vertical de una sola columna, ancho completo: tabla de ítems,
+ * gastos generales detallados y cascada de precios, en ese orden, cada uno
+ * en su propia glass card separada por 24px (mb-6). Sin panel lateral. */
 
 export default function PresupuestoPage() {
   const params = useParams();
@@ -493,7 +497,7 @@ export default function PresupuestoPage() {
         </nav>
       </header>
 
-      {/* ── Cuerpo ── */}
+      {/* ── Cuerpo: documento vertical, una sola columna, ancho completo ── */}
       <div className="flex-1 overflow-y-auto p-6">
         {cargando ? (
           <div className="flex items-center justify-center h-64">
@@ -517,8 +521,8 @@ export default function PresupuestoPage() {
             </Link>
           </div>
         ) : datos && coeficientes && totales ? (
-          <>
-            {/* ── Tabla de rubros e ítems ── */}
+          <div className="w-full max-w-none">
+            {/* ── SECCIÓN 1: Tabla de presupuesto ── */}
             <div className="overflow-hidden mb-6" style={GLASS_CARD}>
               <table className="w-full text-sm">
                 <thead>
@@ -544,17 +548,17 @@ export default function PresupuestoPage() {
                   {agruparPorRubro(datos.lineas).map((rubro) => (
                     <Fragment key={rubro.rubro_id}>
                       {/* Cabecera del rubro */}
-                      <tr style={{ background: 'rgba(200,230,76,0.12)' }}>
+                      <tr style={{ background: 'rgba(200,230,76,0.08)' }}>
                         <td
                           colSpan={4}
-                          className="px-4 py-2.5 font-bold"
-                          style={{ color: '#1A1A2E', borderTop: '1px solid rgba(0,0,0,0.06)' }}
+                          className="px-4 py-2.5"
+                          style={{ color: '#1A1A2E', fontWeight: 600, borderTop: '1px solid rgba(0,0,0,0.06)' }}
                         >
                           {rubro.rubro_nombre}
                         </td>
                         <td
-                          className="px-4 py-2.5 text-right font-bold font-mono tabular-nums"
-                          style={{ color: '#1A1A2E', borderTop: '1px solid rgba(0,0,0,0.06)' }}
+                          className="px-4 py-2.5 text-right font-mono tabular-nums"
+                          style={{ color: '#1A1A2E', fontWeight: 600, borderTop: '1px solid rgba(0,0,0,0.06)' }}
                         >
                           {formatPrecio(rubro.subtotal)}
                         </td>
@@ -587,120 +591,129 @@ export default function PresupuestoPage() {
                     </Fragment>
                   ))}
                 </tbody>
+                <tfoot>
+                  <tr style={{ borderTop: '2px solid rgba(0,0,0,0.10)' }}>
+                    <td colSpan={4} className="px-4 py-3 text-right" style={{ fontWeight: 700, color: '#1A1A2E' }}>
+                      Total costo directo
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono tabular-nums" style={{ fontWeight: 700, color: '#1A1A2E' }}>
+                      {formatPrecio(totales.subtotal)}
+                    </td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
 
-            {/* ── Totales ── */}
-            <div className="flex justify-end">
-              <div className="w-full max-w-sm flex flex-col gap-6">
-                {/* ── Sección 1: Gastos generales detallados ── */}
-                <div className="overflow-hidden" style={GLASS_CARD}>
-                  <div className="px-5 py-3" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-                    <span className="text-sm font-semibold" style={{ color: '#1A1A2E' }}>
-                      Gastos generales de obra
-                    </span>
-                  </div>
+            {/* ── SECCIÓN 2: Gastos generales de obra ── */}
+            <div className="overflow-hidden mb-6" style={GLASS_CARD}>
+              <div className="px-6 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                <span className="text-base font-semibold" style={{ color: '#1A1A2E' }}>
+                  Gastos generales de obra
+                </span>
+              </div>
 
-                  {gastosCargando ? (
-                    <p className="px-5 py-3 text-sm" style={{ color: '#6B7080' }}>Cargando…</p>
-                  ) : (
-                    (gastosGenerales ?? []).map((gasto) => (
-                      <GastoGeneralRow
-                        key={gasto.id}
-                        gasto={gasto}
-                        guardando={guardandoGastoId === gasto.id}
-                        onGuardarConcepto={(valor) => guardarGastoGeneral(gasto.id, 'concepto', valor)}
-                        onGuardarMonto={(valor) => guardarGastoGeneral(gasto.id, 'monto', valor)}
-                        onEliminar={() => eliminarGastoGeneral(gasto.id)}
-                      />
-                    ))
-                  )}
-
-                  <div className="px-5 py-3" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-                    <button
-                      onClick={agregarGastoGeneral}
-                      className="text-sm font-semibold transition-opacity hover:opacity-80 px-4 py-1.5"
-                      style={{ background: '#C8E64C', color: '#2A3300', borderRadius: '9999px' }}
-                    >
-                      + Agregar gasto
-                    </button>
-                  </div>
-
-                  <div className="px-5 py-3 flex flex-col gap-0.5" style={{ background: 'rgba(200,230,76,0.10)' }}>
-                    <span className="text-sm font-medium" style={{ color: '#1A1A2E' }}>
-                      Total gastos generales: {formatPrecio(totalGastosDetallado)}
-                    </span>
-                    <span className="text-xs" style={{ color: '#6B7080' }}>
-                      ({formatNum(pctGastosDetalladoSobreDirecto)}% del costo directo)
-                    </span>
-                  </div>
-
-                  {gastosError && (
-                    <p className="px-5 py-2 text-xs" style={{ color: '#EF4444' }}>{gastosError}</p>
-                  )}
-                </div>
-
-                {/* ── Sección 2: Cascada de precios ── */}
-                <div className="overflow-hidden" style={GLASS_CARD}>
-                  <div className="px-5 py-3 flex justify-between items-center" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-                    <span className="text-sm" style={{ color: '#6B7080' }}>Subtotal de obra</span>
-                    <span className="text-sm font-medium font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
-                      {formatPrecio(totales.subtotal)}
-                    </span>
-                  </div>
-
-                  <EditablePct
-                    label="Gastos generales"
-                    valor={coeficientes.gastos_generales}
-                    monto={totales.gastos_generales}
-                    guardando={guardandoCampo === 'gastos_generales'}
-                    onGuardar={(v) => guardarCoeficiente('gastos_generales', v)}
+              {gastosCargando ? (
+                <p className="px-6 py-3 text-sm" style={{ color: '#6B7080' }}>Cargando…</p>
+              ) : (
+                (gastosGenerales ?? []).map((gasto) => (
+                  <GastoGeneralRow
+                    key={gasto.id}
+                    gasto={gasto}
+                    guardando={guardandoGastoId === gasto.id}
+                    onGuardarConcepto={(valor) => guardarGastoGeneral(gasto.id, 'concepto', valor)}
+                    onGuardarMonto={(valor) => guardarGastoGeneral(gasto.id, 'monto', valor)}
+                    onEliminar={() => eliminarGastoGeneral(gasto.id)}
                   />
-                  <EditablePct
-                    label="Costo financiero"
-                    valor={coeficientes.costo_financiero}
-                    monto={totales.costo_financiero}
-                    guardando={guardandoCampo === 'costo_financiero'}
-                    onGuardar={(v) => guardarCoeficiente('costo_financiero', v)}
-                  />
-                  <EditablePct
-                    label="Beneficio"
-                    valor={coeficientes.beneficio}
-                    monto={totales.beneficio}
-                    guardando={guardandoCampo === 'beneficio'}
-                    onGuardar={(v) => guardarCoeficiente('beneficio', v)}
-                  />
-                  <EditablePct
-                    label="Impuestos"
-                    valor={coeficientes.impuestos}
-                    monto={totales.impuestos}
-                    guardando={guardandoCampo === 'impuestos'}
-                    onGuardar={(v) => guardarCoeficiente('impuestos', v)}
-                  />
+                ))
+              )}
 
-                  <div className="px-5 py-4 flex justify-between items-center" style={{ background: 'rgba(200,230,76,0.15)' }}>
-                    <span className="text-base font-bold" style={{ color: '#1A1A2E' }}>Total final</span>
-                    <span className="text-2xl font-bold font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
-                      {formatPrecio(totales.total)}
-                    </span>
-                  </div>
+              <div className="px-6 py-3 flex justify-between items-center" style={{ background: 'rgba(200,230,76,0.10)' }}>
+                <span className="text-sm font-medium" style={{ color: '#1A1A2E' }}>
+                  Total gastos generales
+                </span>
+                <span className="text-sm font-semibold font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
+                  {formatPrecio(totalGastosDetallado)}{' '}
+                  <span className="font-normal" style={{ color: '#6B7080' }}>
+                    ({formatNum(pctGastosDetalladoSobreDirecto)}% del costo directo)
+                  </span>
+                </span>
+              </div>
 
-                  <div className="px-5 py-4 flex justify-between items-center" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
-                    <span className="text-base font-bold" style={{ color: '#1A1A2E' }}>Coeficiente de impactación</span>
-                    <span className="text-2xl font-bold font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
-                      {formatCoeficiente(totales.coeficiente)}
-                    </span>
-                  </div>
-                </div>
+              <div className="px-6 py-4">
+                <button
+                  onClick={agregarGastoGeneral}
+                  className="text-sm font-semibold transition-opacity hover:opacity-80 px-5 py-2"
+                  style={{ background: '#C8E64C', color: '#2A3300', borderRadius: '9999px' }}
+                >
+                  + Agregar gasto
+                </button>
+              </div>
+
+              {gastosError && (
+                <p className="px-6 pb-4 text-xs" style={{ color: '#EF4444' }}>{gastosError}</p>
+              )}
+            </div>
+
+            {/* ── SECCIÓN 3: Cascada de precios ── */}
+            <div className="overflow-hidden mb-6" style={GLASS_CARD}>
+              <div className="px-6 py-3 flex justify-between items-center" style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                <span className="text-sm" style={{ color: '#6B7080' }}>Subtotal de obra (costo directo)</span>
+                <span className="text-sm font-medium font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
+                  {formatPrecio(totales.subtotal)}
+                </span>
+              </div>
+
+              <EditablePct
+                label="Gastos generales"
+                valor={coeficientes.gastos_generales}
+                monto={totales.gastos_generales}
+                guardando={guardandoCampo === 'gastos_generales'}
+                onGuardar={(v) => guardarCoeficiente('gastos_generales', v)}
+              />
+              <EditablePct
+                label="Costo financiero"
+                valor={coeficientes.costo_financiero}
+                monto={totales.costo_financiero}
+                guardando={guardandoCampo === 'costo_financiero'}
+                onGuardar={(v) => guardarCoeficiente('costo_financiero', v)}
+              />
+              <EditablePct
+                label="Beneficio"
+                valor={coeficientes.beneficio}
+                monto={totales.beneficio}
+                guardando={guardandoCampo === 'beneficio'}
+                onGuardar={(v) => guardarCoeficiente('beneficio', v)}
+              />
+              <EditablePct
+                label="Impuestos"
+                valor={coeficientes.impuestos}
+                monto={totales.impuestos}
+                guardando={guardandoCampo === 'impuestos'}
+                onGuardar={(v) => guardarCoeficiente('impuestos', v)}
+              />
+
+              <div
+                className="px-6 py-5 flex justify-between items-center"
+                style={{ borderTop: '2px solid rgba(0,0,0,0.10)', background: 'rgba(200,230,76,0.15)' }}
+              >
+                <span style={{ fontSize: '28px', fontWeight: 700, color: '#1A1A2E' }}>Precio final</span>
+                <span className="font-mono tabular-nums" style={{ fontSize: '28px', fontWeight: 700, color: '#1A1A2E' }}>
+                  {formatPrecio(totales.total)}
+                </span>
+              </div>
+
+              <div className="px-6 py-5 flex justify-between items-center">
+                <span style={{ fontSize: '28px', fontWeight: 700, color: '#1A1A2E' }}>Coeficiente de impactación</span>
+                <span className="font-mono tabular-nums" style={{ fontSize: '28px', fontWeight: 700, color: '#1A1A2E' }}>
+                  {formatCoeficiente(totales.coeficiente)}
+                </span>
               </div>
             </div>
 
             {errorGuardado && (
-              <div className="flex justify-end mt-2">
-                <p className="text-xs" style={{ color: '#EF4444' }}>{errorGuardado}</p>
-              </div>
+              <p className="text-xs mb-6" style={{ color: '#EF4444' }}>{errorGuardado}</p>
             )}
-          </>
+          </div>
         ) : null}
       </div>
     </div>
