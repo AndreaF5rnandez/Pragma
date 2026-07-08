@@ -49,6 +49,7 @@ export async function PUT(
       fecha_inicio,
       estado,
       gastos_generales_pct,
+      costo_financiero_pct,
       beneficio_pct,
       impuestos_pct,
     } = body;
@@ -78,6 +79,7 @@ export async function PUT(
 
     for (const [campo, valor] of [
       ["gastos_generales_pct", gastos_generales_pct],
+      ["costo_financiero_pct", costo_financiero_pct],
       ["beneficio_pct", beneficio_pct],
       ["impuestos_pct", impuestos_pct],
     ] as const) {
@@ -96,6 +98,7 @@ export async function PUT(
       ...(fecha_inicio !== undefined && { fecha_inicio: fecha_inicio || null }),
       ...(estado && { estado }),
       ...(gastos_generales_pct !== undefined && { gastos_generales_pct }),
+      ...(costo_financiero_pct !== undefined && { costo_financiero_pct }),
       ...(beneficio_pct !== undefined && { beneficio_pct }),
       ...(impuestos_pct !== undefined && { impuestos_pct }),
     };

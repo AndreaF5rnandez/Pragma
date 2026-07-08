@@ -8,12 +8,20 @@ type MedicionResumen = Pick<Medicion, "id" | "item_id" | "cantidad_calculada">;
 type ItemPresupuesto = Item & { receta?: RecetaConInsumos | null; mediciones: MedicionResumen[] };
 type RubroPresupuesto = Rubro & { items: ItemPresupuesto[] };
 
-const TOTALES_VACIOS = { subtotal: 0, gastos_generales: 0, beneficio: 0, impuestos: 0, total: 0 };
+const TOTALES_VACIOS = {
+  subtotal: 0,
+  gastos_generales: 0,
+  costo_financiero: 0,
+  beneficio: 0,
+  impuestos: 0,
+  total: 0,
+  coeficiente: 0,
+};
 
 // GET /api/presupuesto/[obraId]
-// Los porcentajes de gastos generales, beneficio e impuestos se leen de la
-// obra (columnas gastos_generales_pct, beneficio_pct, impuestos_pct), no de
-// valores fijos en el código.
+// Los porcentajes de gastos generales, costo financiero, beneficio e impuestos
+// se leen de la obra (columnas gastos_generales_pct, costo_financiero_pct,
+// beneficio_pct, impuestos_pct), no de valores fijos en el código.
 export async function GET(
   _request: NextRequest,
   { params }: { params: { obraId: string } },
@@ -33,11 +41,13 @@ export async function GET(
     }
 
     const pctGastosGenerales = Number(obra.gastos_generales_pct ?? 10);
+    const pctCostoFinanciero = Number(obra.costo_financiero_pct ?? 0);
     const pctBeneficio = Number(obra.beneficio_pct ?? 15);
     const pctImpuestos = Number(obra.impuestos_pct ?? 21);
 
     const coeficientes = {
       gastos_generales: pctGastosGenerales,
+      costo_financiero: pctCostoFinanciero,
       beneficio: pctBeneficio,
       impuestos: pctImpuestos,
     };
@@ -110,6 +120,7 @@ export async function GET(
     const totales = calcularTotalesPresupuesto(
       lineas,
       pctGastosGenerales,
+      pctCostoFinanciero,
       pctBeneficio,
       pctImpuestos,
     );

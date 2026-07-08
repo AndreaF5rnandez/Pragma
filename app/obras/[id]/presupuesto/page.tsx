@@ -4,20 +4,23 @@ import { Fragment, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { calcularTotalesPresupuesto } from '@/lib/calculos';
-import type { Obra, PresupuestoLinea } from '@/types';
+import type { GastoGeneral, Obra, PresupuestoLinea } from '@/types';
 
 /* ─── Tipos locales ────────────────────────────────────────────────────────── */
 
 type Totales = {
   subtotal: number;
   gastos_generales: number;
+  costo_financiero: number;
   beneficio: number;
   impuestos: number;
   total: number;
+  coeficiente: number;
 };
 
 type Coeficientes = {
   gastos_generales: number;
+  costo_financiero: number;
   beneficio: number;
   impuestos: number;
 };
@@ -44,6 +47,10 @@ function formatPrecio(v: number) {
 
 function formatNum(v: number) {
   return new Intl.NumberFormat('es-AR', { maximumFractionDigits: 4 }).format(v);
+}
+
+function formatCoeficiente(v: number) {
+  return new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
 }
 
 function agruparPorRubro(lineas: PresupuestoLinea[]): RubroAgrupado[] {
@@ -158,6 +165,109 @@ function EditablePct({
   );
 }
 
+/* ─── GastoGeneralRow ──────────────────────────────────────────────────────── */
+/* Línea de gasto general: concepto (input de texto siempre editable, autosave
+ * al perder foco) y monto (click para editar, mismo patrón que EditablePct).
+ * Las líneas predefinidas no muestran botón de eliminar. */
+
+function GastoGeneralRow({
+  gasto,
+  guardando,
+  onGuardarConcepto,
+  onGuardarMonto,
+  onEliminar,
+}: {
+  gasto: GastoGeneral;
+  guardando: boolean;
+  onGuardarConcepto: (valor: string) => void;
+  onGuardarMonto: (valor: number) => void;
+  onEliminar: () => void;
+}) {
+  const [concepto, setConcepto] = useState(gasto.concepto);
+  const [editandoMonto, setEditandoMonto] = useState(false);
+  const [borradorMonto, setBorradorMonto] = useState(String(gasto.monto));
+
+  useEffect(() => setConcepto(gasto.concepto), [gasto.concepto]);
+
+  function confirmarConcepto() {
+    const valor = concepto.trim();
+    if (!valor) { setConcepto(gasto.concepto); return; }
+    if (valor === gasto.concepto) return;
+    onGuardarConcepto(valor);
+  }
+
+  function entrarEdicionMonto() {
+    setBorradorMonto(String(gasto.monto));
+    setEditandoMonto(true);
+  }
+
+  function confirmarMonto() {
+    setEditandoMonto(false);
+    const num = Number(borradorMonto);
+    if (Number.isNaN(num) || num < 0 || num === gasto.monto) return;
+    onGuardarMonto(num);
+  }
+
+  return (
+    <div className="px-5 py-2.5 flex items-center gap-3" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+      <input
+        type="text"
+        value={concepto}
+        onChange={(e) => setConcepto(e.target.value)}
+        onBlur={confirmarConcepto}
+        onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+        className="flex-1 min-w-0 text-sm bg-transparent border-b border-transparent hover:border-black/10 focus:outline-none focus:border-b-[#C8E64C] transition-colors"
+        style={{ color: '#1A1A2E' }}
+      />
+
+      {editandoMonto ? (
+        <input
+          autoFocus
+          type="number"
+          min="0"
+          step="0.01"
+          value={borradorMonto}
+          onChange={(e) => setBorradorMonto(e.target.value)}
+          onBlur={confirmarMonto}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') { e.preventDefault(); confirmarMonto(); }
+            if (e.key === 'Escape') { setEditandoMonto(false); }
+          }}
+          className="w-24 text-right font-mono tabular-nums border rounded-[6px] px-1 py-0.5 focus:outline-none"
+          style={{
+            color: '#1A1A2E',
+            borderColor: '#C8E64C',
+            boxShadow: '0 0 0 3px rgba(200,230,76,0.2)',
+            background: 'rgba(255,255,255,0.8)',
+          }}
+        />
+      ) : (
+        <button
+          onClick={entrarEdicionMonto}
+          className="text-sm font-mono tabular-nums underline decoration-dotted hover:opacity-70 transition-opacity whitespace-nowrap"
+          style={{ color: '#1A1A2E' }}
+          title="Click para editar"
+        >
+          {formatPrecio(gasto.monto)}
+        </button>
+      )}
+
+      {guardando && <span className="text-xs shrink-0" style={{ color: '#9CA3AF' }}>…</span>}
+
+      {!gasto.es_predefinido && (
+        <button
+          onClick={onEliminar}
+          className="text-xs shrink-0 hover:opacity-70 transition-opacity"
+          style={{ color: '#EF4444' }}
+          title="Eliminar gasto"
+        >
+          ✕
+        </button>
+      )}
+    </div>
+  );
+}
+
 /* ─── Página ───────────────────────────────────────────────────────────────── */
 
 export default function PresupuestoPage() {
@@ -173,6 +283,12 @@ export default function PresupuestoPage() {
   const [coeficientes, setCoeficientes] = useState<Coeficientes | null>(null);
   const [guardandoCampo, setGuardandoCampo] = useState<keyof Coeficientes | null>(null);
   const [errorGuardado, setErrorGuardado] = useState<string | null>(null);
+
+  // Gastos generales detallados: lista independiente, propia de la obra.
+  const [gastosGenerales, setGastosGenerales] = useState<GastoGeneral[] | null>(null);
+  const [gastosCargando, setGastosCargando] = useState(true);
+  const [gastosError, setGastosError] = useState<string | null>(null);
+  const [guardandoGastoId, setGuardandoGastoId] = useState<string | null>(null);
 
   useEffect(() => {
     let activo = true;
@@ -196,6 +312,24 @@ export default function PresupuestoPage() {
     return () => { activo = false; };
   }, [obraId]);
 
+  useEffect(() => {
+    let activo = true;
+    setGastosCargando(true);
+    setGastosError(null);
+
+    fetch(`/api/gastos-generales?obra_id=${obraId}`)
+      .then(async (res) => {
+        const json: unknown = await res.json();
+        if (!res.ok)
+          throw new Error((json as { error: string }).error ?? 'Error al cargar gastos generales');
+        if (activo) setGastosGenerales(json as GastoGeneral[]);
+      })
+      .catch((err: Error) => { if (activo) setGastosError(err.message); })
+      .finally(() => { if (activo) setGastosCargando(false); });
+
+    return () => { activo = false; };
+  }, [obraId]);
+
   // Totales recalculados en el cliente a partir de las líneas ya cargadas y
   // los coeficientes actuales (editados o no), sin volver a pedirle nada al servidor.
   const totales = useMemo(() => {
@@ -203,10 +337,21 @@ export default function PresupuestoPage() {
     return calcularTotalesPresupuesto(
       datos.lineas,
       coeficientes.gastos_generales,
+      coeficientes.costo_financiero,
       coeficientes.beneficio,
       coeficientes.impuestos,
     );
   }, [datos, coeficientes]);
+
+  const totalGastosDetallado = useMemo(
+    () => (gastosGenerales ?? []).reduce((sum, g) => sum + g.monto, 0),
+    [gastosGenerales],
+  );
+
+  const pctGastosDetalladoSobreDirecto = useMemo(() => {
+    if (!totales || totales.subtotal <= 0) return 0;
+    return (totalGastosDetallado / totales.subtotal) * 100;
+  }, [totalGastosDetallado, totales]);
 
   async function guardarCoeficiente(campo: keyof Coeficientes, nuevoValor: number) {
     if (!datos || !coeficientes) return;
@@ -219,6 +364,7 @@ export default function PresupuestoPage() {
 
     const campoDb: Record<keyof Coeficientes, string> = {
       gastos_generales: 'gastos_generales_pct',
+      costo_financiero: 'costo_financiero_pct',
       beneficio: 'beneficio_pct',
       impuestos: 'impuestos_pct',
     };
@@ -244,6 +390,67 @@ export default function PresupuestoPage() {
       setErrorGuardado(err instanceof Error ? err.message : 'Error al guardar');
     } finally {
       setGuardandoCampo(null);
+    }
+  }
+
+  async function guardarGastoGeneral(id: string, campo: 'concepto' | 'monto', valor: string | number) {
+    if (!gastosGenerales) return;
+    const anterior = gastosGenerales.find((g) => g.id === id);
+    if (!anterior) return;
+
+    setGastosGenerales((prev) =>
+      prev ? prev.map((g) => (g.id === id ? { ...g, [campo]: valor } : g)) : prev,
+    );
+    setGuardandoGastoId(id);
+    setGastosError(null);
+
+    try {
+      const res = await fetch(`/api/gastos-generales/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [campo]: valor }),
+      });
+      const json: unknown = await res.json();
+      if (!res.ok) throw new Error((json as { error: string }).error ?? 'Error al guardar');
+    } catch (err) {
+      setGastosGenerales((prev) =>
+        prev ? prev.map((g) => (g.id === id ? anterior : g)) : prev,
+      );
+      setGastosError(err instanceof Error ? err.message : 'Error al guardar');
+    } finally {
+      setGuardandoGastoId(null);
+    }
+  }
+
+  async function agregarGastoGeneral() {
+    setGastosError(null);
+    try {
+      const res = await fetch('/api/gastos-generales', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ obra_id: obraId, concepto: 'Nuevo gasto', monto: 0 }),
+      });
+      const json: unknown = await res.json();
+      if (!res.ok) throw new Error((json as { error: string }).error ?? 'Error al crear el gasto');
+      setGastosGenerales((prev) => (prev ? [...prev, json as GastoGeneral] : [json as GastoGeneral]));
+    } catch (err) {
+      setGastosError(err instanceof Error ? err.message : 'Error al crear el gasto');
+    }
+  }
+
+  async function eliminarGastoGeneral(id: string) {
+    if (!gastosGenerales) return;
+    const anterior = gastosGenerales;
+    setGastosGenerales((prev) => (prev ? prev.filter((g) => g.id !== id) : prev));
+    setGastosError(null);
+
+    try {
+      const res = await fetch(`/api/gastos-generales/${id}`, { method: 'DELETE' });
+      const json: unknown = await res.json();
+      if (!res.ok) throw new Error((json as { error: string }).error ?? 'Error al eliminar el gasto');
+    } catch (err) {
+      setGastosGenerales(anterior);
+      setGastosError(err instanceof Error ? err.message : 'Error al eliminar el gasto');
     }
   }
 
@@ -385,41 +592,105 @@ export default function PresupuestoPage() {
 
             {/* ── Totales ── */}
             <div className="flex justify-end">
-              <div className="overflow-hidden w-full max-w-sm" style={GLASS_CARD}>
-                <div className="px-5 py-3 flex justify-between items-center" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-                  <span className="text-sm" style={{ color: '#6B7080' }}>Subtotal de obra</span>
-                  <span className="text-sm font-medium font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
-                    {formatPrecio(totales.subtotal)}
-                  </span>
+              <div className="w-full max-w-sm flex flex-col gap-6">
+                {/* ── Sección 1: Gastos generales detallados ── */}
+                <div className="overflow-hidden" style={GLASS_CARD}>
+                  <div className="px-5 py-3" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                    <span className="text-sm font-semibold" style={{ color: '#1A1A2E' }}>
+                      Gastos generales de obra
+                    </span>
+                  </div>
+
+                  {gastosCargando ? (
+                    <p className="px-5 py-3 text-sm" style={{ color: '#6B7080' }}>Cargando…</p>
+                  ) : (
+                    (gastosGenerales ?? []).map((gasto) => (
+                      <GastoGeneralRow
+                        key={gasto.id}
+                        gasto={gasto}
+                        guardando={guardandoGastoId === gasto.id}
+                        onGuardarConcepto={(valor) => guardarGastoGeneral(gasto.id, 'concepto', valor)}
+                        onGuardarMonto={(valor) => guardarGastoGeneral(gasto.id, 'monto', valor)}
+                        onEliminar={() => eliminarGastoGeneral(gasto.id)}
+                      />
+                    ))
+                  )}
+
+                  <div className="px-5 py-3" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                    <button
+                      onClick={agregarGastoGeneral}
+                      className="text-sm font-semibold transition-opacity hover:opacity-80 px-4 py-1.5"
+                      style={{ background: '#C8E64C', color: '#2A3300', borderRadius: '9999px' }}
+                    >
+                      + Agregar gasto
+                    </button>
+                  </div>
+
+                  <div className="px-5 py-3 flex flex-col gap-0.5" style={{ background: 'rgba(200,230,76,0.10)' }}>
+                    <span className="text-sm font-medium" style={{ color: '#1A1A2E' }}>
+                      Total gastos generales: {formatPrecio(totalGastosDetallado)}
+                    </span>
+                    <span className="text-xs" style={{ color: '#6B7080' }}>
+                      ({formatNum(pctGastosDetalladoSobreDirecto)}% del costo directo)
+                    </span>
+                  </div>
+
+                  {gastosError && (
+                    <p className="px-5 py-2 text-xs" style={{ color: '#EF4444' }}>{gastosError}</p>
+                  )}
                 </div>
 
-                <EditablePct
-                  label="Gastos generales"
-                  valor={coeficientes.gastos_generales}
-                  monto={totales.gastos_generales}
-                  guardando={guardandoCampo === 'gastos_generales'}
-                  onGuardar={(v) => guardarCoeficiente('gastos_generales', v)}
-                />
-                <EditablePct
-                  label="Beneficio"
-                  valor={coeficientes.beneficio}
-                  monto={totales.beneficio}
-                  guardando={guardandoCampo === 'beneficio'}
-                  onGuardar={(v) => guardarCoeficiente('beneficio', v)}
-                />
-                <EditablePct
-                  label="Impuestos"
-                  valor={coeficientes.impuestos}
-                  monto={totales.impuestos}
-                  guardando={guardandoCampo === 'impuestos'}
-                  onGuardar={(v) => guardarCoeficiente('impuestos', v)}
-                />
+                {/* ── Sección 2: Cascada de precios ── */}
+                <div className="overflow-hidden" style={GLASS_CARD}>
+                  <div className="px-5 py-3 flex justify-between items-center" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                    <span className="text-sm" style={{ color: '#6B7080' }}>Subtotal de obra</span>
+                    <span className="text-sm font-medium font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
+                      {formatPrecio(totales.subtotal)}
+                    </span>
+                  </div>
 
-                <div className="px-5 py-4 flex justify-between items-center" style={{ background: 'rgba(200,230,76,0.15)' }}>
-                  <span className="text-base font-bold" style={{ color: '#1A1A2E' }}>Total final</span>
-                  <span className="text-2xl font-bold font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
-                    {formatPrecio(totales.total)}
-                  </span>
+                  <EditablePct
+                    label="Gastos generales"
+                    valor={coeficientes.gastos_generales}
+                    monto={totales.gastos_generales}
+                    guardando={guardandoCampo === 'gastos_generales'}
+                    onGuardar={(v) => guardarCoeficiente('gastos_generales', v)}
+                  />
+                  <EditablePct
+                    label="Costo financiero"
+                    valor={coeficientes.costo_financiero}
+                    monto={totales.costo_financiero}
+                    guardando={guardandoCampo === 'costo_financiero'}
+                    onGuardar={(v) => guardarCoeficiente('costo_financiero', v)}
+                  />
+                  <EditablePct
+                    label="Beneficio"
+                    valor={coeficientes.beneficio}
+                    monto={totales.beneficio}
+                    guardando={guardandoCampo === 'beneficio'}
+                    onGuardar={(v) => guardarCoeficiente('beneficio', v)}
+                  />
+                  <EditablePct
+                    label="Impuestos"
+                    valor={coeficientes.impuestos}
+                    monto={totales.impuestos}
+                    guardando={guardandoCampo === 'impuestos'}
+                    onGuardar={(v) => guardarCoeficiente('impuestos', v)}
+                  />
+
+                  <div className="px-5 py-4 flex justify-between items-center" style={{ background: 'rgba(200,230,76,0.15)' }}>
+                    <span className="text-base font-bold" style={{ color: '#1A1A2E' }}>Total final</span>
+                    <span className="text-2xl font-bold font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
+                      {formatPrecio(totales.total)}
+                    </span>
+                  </div>
+
+                  <div className="px-5 py-4 flex justify-between items-center" style={{ borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                    <span className="text-base font-bold" style={{ color: '#1A1A2E' }}>Coeficiente de impactación</span>
+                    <span className="text-2xl font-bold font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
+                      {formatCoeficiente(totales.coeficiente)}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

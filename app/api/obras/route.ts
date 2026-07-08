@@ -2,6 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { Obra } from "@/types";
 
+// Líneas de gastos generales que se crean automáticamente para toda obra
+// nueva. Son editables pero no eliminables (es_predefinido: true).
+const GASTOS_GENERALES_PREDEFINIDOS = [
+  "Dirección y administración de obra",
+  "Sereno / Vigilancia",
+  "Luz de obra",
+  "Agua de construcción",
+  "Seguros",
+  "Gastos de oficina",
+  "Movilidad y comunicaciones",
+  "Equipos y herramientas menores",
+];
+
 // GET /api/obras
 // Query params opcionales: ?estado=activa|pausada|finalizada
 export async function GET(request: NextRequest) {
@@ -82,6 +95,18 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) throw error;
+
+    const { error: gastosError } = await supabase.from("gastos_generales").insert(
+      GASTOS_GENERALES_PREDEFINIDOS.map((concepto, index) => ({
+        obra_id: data.id,
+        concepto,
+        monto: 0,
+        es_predefinido: true,
+        orden: index + 1,
+      })),
+    );
+
+    if (gastosError) throw gastosError;
 
     return NextResponse.json(data, { status: 201 });
   } catch (error: any) {

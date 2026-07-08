@@ -62,31 +62,47 @@ export function calcularSubtotalLinea(
 /**
  * Calcula los totales generales del presupuesto a partir de sus lineas y porcentajes.
  *
+ * La cascada es acumulativa: cada capa se aplica sobre el subtotal ya inflado
+ * por las capas anteriores, en este orden: gastos generales, costo financiero,
+ * beneficio, impuestos.
+ *
  * @param lineas Lineas del presupuesto ya calculadas.
- * @param porcentajeGastosGenerales Porcentaje de gastos generales, por ejemplo 10 para 10%.
- * @param porcentajeBeneficio Porcentaje de beneficio aplicado sobre subtotal mas gastos generales.
- * @param porcentajeImpuestos Porcentaje de impuestos aplicado sobre subtotal, gastos generales y beneficio.
- * @returns Un objeto con subtotal, gastos_generales, beneficio, impuestos y total final.
+ * @param porcentajeGastosGenerales Porcentaje de gastos generales aplicado sobre el subtotal.
+ * @param porcentajeCostoFinanciero Porcentaje de costo financiero aplicado sobre subtotal mas gastos generales.
+ * @param porcentajeBeneficio Porcentaje de beneficio aplicado sobre subtotal, gastos generales y costo financiero.
+ * @param porcentajeImpuestos Porcentaje de impuestos aplicado sobre subtotal, gastos generales, costo financiero y beneficio.
+ * @returns Un objeto con subtotal, gastos_generales, costo_financiero, beneficio, impuestos, total y coeficiente de impactación.
  */
 export function calcularTotalesPresupuesto(
   lineas: PresupuestoLinea[],
   porcentajeGastosGenerales: number,
+  porcentajeCostoFinanciero: number,
   porcentajeBeneficio: number,
   porcentajeImpuestos: number,
 ) {
   const subtotal = lineas.reduce((total, linea) => total + linea.subtotal, 0);
+
   const gastos_generales = aplicarPorcentaje(subtotal, porcentajeGastosGenerales);
-  const baseBeneficio = subtotal + gastos_generales;
-  const beneficio = aplicarPorcentaje(baseBeneficio, porcentajeBeneficio);
-  const baseImpuestos = baseBeneficio + beneficio;
-  const impuestos = aplicarPorcentaje(baseImpuestos, porcentajeImpuestos);
-  const total = subtotal + gastos_generales + beneficio + impuestos;
+  const sub1 = subtotal + gastos_generales;
+
+  const costo_financiero = aplicarPorcentaje(sub1, porcentajeCostoFinanciero);
+  const sub2 = sub1 + costo_financiero;
+
+  const beneficio = aplicarPorcentaje(sub2, porcentajeBeneficio);
+  const sub3 = sub2 + beneficio;
+
+  const impuestos = aplicarPorcentaje(sub3, porcentajeImpuestos);
+  const total = sub3 + impuestos;
+
+  const coeficiente = subtotal > 0 ? total / subtotal : 0;
 
   return {
     subtotal,
     gastos_generales,
+    costo_financiero,
     beneficio,
     impuestos,
     total,
+    coeficiente,
   };
 }

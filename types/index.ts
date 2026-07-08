@@ -33,8 +33,20 @@ export interface Obra {
   fecha_inicio?: string;
   estado: "activa" | "pausada" | "finalizada";
   gastos_generales_pct?: number;
+  costo_financiero_pct?: number;
   beneficio_pct?: number;
   impuestos_pct?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GastoGeneral {
+  id: string;
+  obra_id: string;
+  concepto: string;
+  monto: number;
+  es_predefinido: boolean;
+  orden: number;
   created_at: string;
   updated_at: string;
 }
