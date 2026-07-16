@@ -4,7 +4,16 @@ import { Fragment, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { usePresupuesto } from '@/hooks/usePresupuesto';
-import type { GastoCategoria, GastoGeneral, GastoGeneralCalculado, PresupuestoResponse } from '@/types';
+import { calcularResumenLocal } from '@/lib/calcularPresupuestoLocal';
+import type {
+  CierrePresupuesto,
+  GastoCategoria,
+  GastoGeneral,
+  GastoGeneralCalculado,
+  GastoModalidad,
+  PaqueteEmpresario,
+  PresupuestoResponse,
+} from '@/types';
 
 /* ─── Tipos locales ────────────────────────────────────────────────────────── */
 
@@ -22,7 +31,13 @@ const CATEGORIAS: { id: GastoCategoria; nombre: string }[] = [
   { id: 'GGI', nombre: 'GGI — Indirectos' },
 ];
 
+const MODALIDADES: { id: GastoModalidad; label: string }[] = [
+  { id: 'unico', label: 'Único' },
+  { id: 'mensual', label: 'Mensual' },
+];
+
 type CampoPaquete = 'costo_financiero' | 'beneficio' | 'iva' | 'rentas';
+type PaqueteLocal = Pick<PaqueteEmpresario, CampoPaquete>;
 
 /* ─── Helpers ──────────────────────────────────────────────────────────────── */
 
@@ -47,7 +62,7 @@ function colorCoeficiente(v: number): { color: string; bg: string } {
     : { color: '#EF4444', bg: 'rgba(239, 68, 68, 0.12)' };
 }
 
-function filasCascada(cierre: PresupuestoResponse['cierre']) {
+function filasCascada(cierre: CierrePresupuesto) {
   return [
     { label: 'Costo-Costo', valor: cierre.costo_costo },
     { label: 'Gastos Generales', valor: cierre.gastos_generales },
@@ -96,11 +111,13 @@ const INPUT_STYLE: React.CSSProperties = {
 /* ─── ResumenCascada ───────────────────────────────────────────────────────── */
 /* Panel fijo de resumen: cascada corta + coeficiente de impactación
  * destacado. Se muestra siempre, sin importar la sub-pestaña activa —
- * en pantalla ancha como columna derecha, en mobile como barra inferior. */
+ * en pantalla ancha como columna derecha, en mobile como barra inferior.
+ * Lee `resumen` (estado optimista local), no el JSON crudo del servidor,
+ * para reflejar cada edición al instante. */
 
-function ResumenCascada({ cierre }: { cierre: PresupuestoResponse['cierre'] }) {
-  const filas = filasCascada(cierre);
-  const coef = colorCoeficiente(cierre.coeficiente);
+function ResumenCascada({ resumen }: { resumen: CierrePresupuesto }) {
+  const filas = filasCascada(resumen);
+  const coef = colorCoeficiente(resumen.coeficiente);
 
   return (
     <>
@@ -131,7 +148,7 @@ function ResumenCascada({ cierre }: { cierre: PresupuestoResponse['cierre'] }) {
             Coeficiente de impactación
           </span>
           <span className="font-mono tabular-nums" style={{ fontSize: '32px', fontWeight: 700, color: coef.color }}>
-            {formatCoeficiente(cierre.coeficiente)}
+            {formatCoeficiente(resumen.coeficiente)}
           </span>
         </div>
       </aside>
@@ -164,7 +181,7 @@ function ResumenCascada({ cierre }: { cierre: PresupuestoResponse['cierre'] }) {
               Coeficiente
             </span>
             <span className="text-base font-bold font-mono tabular-nums whitespace-nowrap" style={{ color: coef.color }}>
-              {formatCoeficiente(cierre.coeficiente)}
+              {formatCoeficiente(resumen.coeficiente)}
             </span>
           </div>
         </div>
@@ -282,9 +299,10 @@ function TabCostoCosto({ datos, obraId }: { datos: PresupuestoResponse; obraId: 
 }
 
 /* ─── GastoGeneralRow ──────────────────────────────────────────────────────── */
-/* Renglón de gasto general: descripción editable, modalidad (toggle),
- * monto editable, meses editable si es mensual, y el total ya calculado
- * por el servidor (calcularTotalGasto). Autosave al perder foco. */
+/* Renglón de gasto general: descripción editable, modalidad (select), monto
+ * editable, meses editable si es mensual, y el total ya reflejado en `gasto`
+ * (optimista). Descripción/monto/meses guardan solo al blur o Enter — nunca
+ * en cada keystroke. */
 
 function GastoGeneralRow({
   gasto,
@@ -335,17 +353,20 @@ function GastoGeneralRow({
         style={{ color: '#1A1A2E' }}
       />
 
-      <button
-        onClick={() => onGuardar({ modalidad: gasto.modalidad === 'mensual' ? 'unico' : 'mensual' })}
-        className="text-xs font-semibold px-3 py-1 rounded-full transition-colors shrink-0"
+      <select
+        value={gasto.modalidad}
+        onChange={(e) => onGuardar({ modalidad: e.target.value as GastoModalidad })}
+        className="text-xs font-semibold px-3 py-1 rounded-full transition-colors shrink-0 focus:outline-none appearance-none text-center"
         style={{
           background: gasto.modalidad === 'mensual' ? '#C8E64C' : 'rgba(0,0,0,0.06)',
           color: gasto.modalidad === 'mensual' ? '#2A3300' : '#6B7080',
+          border: 'none',
         }}
-        title="Click para alternar modalidad"
       >
-        {gasto.modalidad === 'mensual' ? 'Mensual' : 'Único'}
-      </button>
+        {MODALIDADES.map((m) => (
+          <option key={m.id} value={m.id}>{m.label}</option>
+        ))}
+      </select>
 
       <div className="flex items-center gap-1 shrink-0">
         <span className="text-xs" style={{ color: '#9CA3AF' }}>$</span>
@@ -398,51 +419,50 @@ function GastoGeneralRow({
 }
 
 /* ─── TabGastosGenerales ───────────────────────────────────────────────────── */
+/* Solo UI: la lista, el plazo y los totales llegan como props ya calculados
+ * (optimistas) desde la página. Cada acción delega en el callback del padre,
+ * que aplica el update optimista, dispara la red en background y revierte
+ * si falla. */
 
 function TabGastosGenerales({
-  datos,
-  obraId,
-  onRefrescar,
+  gastos,
+  resumen,
+  plazoActual,
+  onGuardarGasto,
+  onAgregarGasto,
+  onEliminarGasto,
+  onGuardarPlazo,
 }: {
-  datos: PresupuestoResponse;
-  obraId: string;
-  onRefrescar: () => void;
+  gastos: GastoGeneralCalculado[];
+  resumen: CierrePresupuesto;
+  plazoActual: number | null;
+  onGuardarGasto: (id: string, cambios: Partial<Pick<GastoGeneral, 'descripcion' | 'modalidad' | 'monto' | 'meses'>>) => Promise<void>;
+  onAgregarGasto: (categoria: GastoCategoria) => Promise<void>;
+  onEliminarGasto: (id: string) => Promise<void>;
+  onGuardarPlazo: (nuevoPlazo: number) => Promise<void>;
 }) {
-  const [plazoBorrador, setPlazoBorrador] = useState(String(datos.obra.plazo_meses ?? ''));
+  const [plazoBorrador, setPlazoBorrador] = useState(String(plazoActual ?? ''));
   const [guardandoPlazo, setGuardandoPlazo] = useState(false);
   const [errorPlazo, setErrorPlazo] = useState<string | null>(null);
 
-  useEffect(() => setPlazoBorrador(String(datos.obra.plazo_meses ?? '')), [datos.obra.plazo_meses]);
+  useEffect(() => setPlazoBorrador(String(plazoActual ?? '')), [plazoActual]);
 
   const [guardandoId, setGuardandoId] = useState<string | null>(null);
   const [errorGuardado, setErrorGuardado] = useState<string | null>(null);
 
   async function confirmarPlazo() {
     const num = Number(plazoBorrador);
-    const actual = datos.obra.plazo_meses ?? 0;
+    const actual = plazoActual ?? 0;
     if (!Number.isInteger(num) || num < 0 || num === actual) {
-      setPlazoBorrador(String(datos.obra.plazo_meses ?? ''));
+      setPlazoBorrador(String(plazoActual ?? ''));
       return;
     }
     setGuardandoPlazo(true);
     setErrorPlazo(null);
     try {
-      const res = await fetch(`/api/obras/${obraId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nombre: datos.obra.nombre,
-          cliente: datos.obra.cliente,
-          direccion: datos.obra.direccion,
-          fecha_inicio: datos.obra.fecha_inicio,
-          estado: datos.obra.estado,
-          plazo_meses: num,
-        }),
-      });
-      const json: unknown = await res.json();
-      if (!res.ok) throw new Error((json as { error: string }).error ?? 'Error al guardar el plazo');
-      onRefrescar();
+      await onGuardarPlazo(num);
     } catch (err) {
+      setPlazoBorrador(String(plazoActual ?? ''));
       setErrorPlazo(err instanceof Error ? err.message : 'Error al guardar el plazo');
     } finally {
       setGuardandoPlazo(false);
@@ -453,14 +473,7 @@ function TabGastosGenerales({
     setGuardandoId(id);
     setErrorGuardado(null);
     try {
-      const res = await fetch(`/api/gastos-generales/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(cambios),
-      });
-      const json: unknown = await res.json();
-      if (!res.ok) throw new Error((json as { error: string }).error ?? 'Error al guardar');
-      onRefrescar();
+      await onGuardarGasto(id, cambios);
     } catch (err) {
       setErrorGuardado(err instanceof Error ? err.message : 'Error al guardar');
     } finally {
@@ -471,14 +484,7 @@ function TabGastosGenerales({
   async function agregarGasto(categoria: GastoCategoria) {
     setErrorGuardado(null);
     try {
-      const res = await fetch('/api/gastos-generales', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ obra_id: obraId, categoria, descripcion: 'Nuevo gasto', modalidad: 'unico', monto: 0 }),
-      });
-      const json: unknown = await res.json();
-      if (!res.ok) throw new Error((json as { error: string }).error ?? 'Error al crear el gasto');
-      onRefrescar();
+      await onAgregarGasto(categoria);
     } catch (err) {
       setErrorGuardado(err instanceof Error ? err.message : 'Error al crear el gasto');
     }
@@ -488,16 +494,13 @@ function TabGastosGenerales({
     if (!window.confirm(`¿Eliminar el gasto "${descripcion}"? Esta acción no se puede deshacer.`)) return;
     setErrorGuardado(null);
     try {
-      const res = await fetch(`/api/gastos-generales/${id}`, { method: 'DELETE' });
-      const json: unknown = await res.json();
-      if (!res.ok) throw new Error((json as { error: string }).error ?? 'Error al eliminar el gasto');
-      onRefrescar();
+      await onEliminarGasto(id);
     } catch (err) {
       setErrorGuardado(err instanceof Error ? err.message : 'Error al eliminar el gasto');
     }
   }
 
-  const lista = datos.gastos_generales.lista;
+  const pctSobreDirecto = resumen.costo_costo > 0 ? (resumen.gastos_generales / resumen.costo_costo) * 100 : 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -520,13 +523,14 @@ function TabGastosGenerales({
         </div>
         <p className="px-6 pb-4 text-xs" style={{ color: '#9CA3AF' }}>
           Valor por defecto para los gastos mensuales — cada gasto puede tener su propia cantidad de meses.
+          Al cambiarlo, se actualizan los gastos mensuales que todavía tenían el plazo anterior.
         </p>
         {errorPlazo && <p className="px-6 pb-4 text-xs" style={{ color: '#EF4444' }}>{errorPlazo}</p>}
       </div>
 
       {/* Categorías */}
       {CATEGORIAS.map((cat) => {
-        const gastosCategoria = lista.filter((g) => g.categoria === cat.id);
+        const gastosCategoria = gastos.filter((g) => g.categoria === cat.id);
         return (
           <div key={cat.id} className="overflow-hidden" style={GLASS_CARD}>
             <div className="px-6 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
@@ -562,12 +566,15 @@ function TabGastosGenerales({
 
       {/* Total: siempre calculado por el sistema, nunca cargado a mano */}
       <div className="overflow-hidden" style={GLASS_CARD}>
-        <div className="px-6 py-4 flex justify-between items-center">
+        <div
+          className="px-6 py-4 flex justify-between items-center"
+          style={{ borderTop: '2px solid rgba(0,0,0,0.10)' }}
+        >
           <span className="text-sm font-medium" style={{ color: '#1A1A2E' }}>Total gastos generales</span>
           <span className="text-sm font-semibold font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
-            {formatPrecio(datos.gastos_generales.total)}{' '}
+            {formatPrecio(resumen.gastos_generales)}{' '}
             <span className="font-normal" style={{ color: '#6B7080' }}>
-              ({formatNum(datos.gastos_generales.porcentaje_derivado)}% del costo-costo)
+              ({formatNum(pctSobreDirecto)}% del costo-costo)
             </span>
           </span>
         </div>
@@ -602,58 +609,44 @@ function CascadaLinea({ label, valor, destacado }: { label: string; valor: numbe
 /* ─── TabPaqueteEmpresario ─────────────────────────────────────────────────── */
 
 function TabPaqueteEmpresario({
-  cierre,
-  obraId,
-  onRefrescar,
+  paquete,
+  resumen,
+  onGuardar,
 }: {
-  cierre: PresupuestoResponse['cierre'];
-  obraId: string;
-  onRefrescar: () => void;
+  paquete: PaqueteLocal;
+  resumen: CierrePresupuesto;
+  onGuardar: (campo: CampoPaquete, valor: number) => Promise<void>;
 }) {
   const [campos, setCampos] = useState({
-    costo_financiero: String(cierre.costo_financiero_pct),
-    beneficio: String(cierre.beneficio_pct),
-    iva: String(cierre.impuestos.iva_pct),
-    rentas: String(cierre.impuestos.rentas_pct),
+    costo_financiero: String(paquete.costo_financiero),
+    beneficio: String(paquete.beneficio),
+    iva: String(paquete.iva),
+    rentas: String(paquete.rentas),
   });
   const [guardandoCampo, setGuardandoCampo] = useState<CampoPaquete | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setCampos({
-      costo_financiero: String(cierre.costo_financiero_pct),
-      beneficio: String(cierre.beneficio_pct),
-      iva: String(cierre.impuestos.iva_pct),
-      rentas: String(cierre.impuestos.rentas_pct),
+      costo_financiero: String(paquete.costo_financiero),
+      beneficio: String(paquete.beneficio),
+      iva: String(paquete.iva),
+      rentas: String(paquete.rentas),
     });
-  }, [cierre.costo_financiero_pct, cierre.beneficio_pct, cierre.impuestos.iva_pct, cierre.impuestos.rentas_pct]);
-
-  const valorActual: Record<CampoPaquete, number> = {
-    costo_financiero: cierre.costo_financiero_pct,
-    beneficio: cierre.beneficio_pct,
-    iva: cierre.impuestos.iva_pct,
-    rentas: cierre.impuestos.rentas_pct,
-  };
+  }, [paquete.costo_financiero, paquete.beneficio, paquete.iva, paquete.rentas]);
 
   async function guardar(campo: CampoPaquete) {
     const num = Number(campos[campo]);
-    if (Number.isNaN(num) || num < 0 || num === valorActual[campo]) {
-      setCampos((prev) => ({ ...prev, [campo]: String(valorActual[campo]) }));
+    if (Number.isNaN(num) || num < 0 || num === paquete[campo]) {
+      setCampos((prev) => ({ ...prev, [campo]: String(paquete[campo]) }));
       return;
     }
     setGuardandoCampo(campo);
     setError(null);
     try {
-      const res = await fetch(`/api/paquete-empresario/${obraId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [campo]: num }),
-      });
-      const json: unknown = await res.json();
-      if (!res.ok) throw new Error((json as { error: string }).error ?? 'Error al guardar');
-      onRefrescar();
+      await onGuardar(campo, num);
     } catch (err) {
-      setCampos((prev) => ({ ...prev, [campo]: String(valorActual[campo]) }));
+      setCampos((prev) => ({ ...prev, [campo]: String(paquete[campo]) }));
       setError(err instanceof Error ? err.message : 'Error al guardar');
     } finally {
       setGuardandoCampo(null);
@@ -683,7 +676,7 @@ function TabPaqueteEmpresario({
     );
   }
 
-  const coef = colorCoeficiente(cierre.coeficiente);
+  const coef = colorCoeficiente(resumen.coeficiente);
 
   return (
     <div className="flex flex-col gap-6">
@@ -698,16 +691,16 @@ function TabPaqueteEmpresario({
       </div>
 
       <div className="overflow-hidden" style={GLASS_CARD}>
-        <CascadaLinea label="Costo-Costo" valor={cierre.costo_costo} />
-        <CascadaLinea label="+ Gastos Generales" valor={cierre.gastos_generales} />
-        <CascadaLinea label="Subtotal 1" valor={cierre.subtotal_1} destacado />
-        <CascadaLinea label={`+ Costo Financiero (${cierre.costo_financiero_pct}%)`} valor={cierre.costo_financiero_monto} />
-        <CascadaLinea label="Subtotal 2" valor={cierre.subtotal_2} destacado />
-        <CascadaLinea label={`+ Beneficio (${cierre.beneficio_pct}%)`} valor={cierre.beneficio_monto} />
-        <CascadaLinea label="Subtotal 3" valor={cierre.subtotal_3} destacado />
+        <CascadaLinea label="Costo-Costo" valor={resumen.costo_costo} />
+        <CascadaLinea label="+ Gastos Generales" valor={resumen.gastos_generales} />
+        <CascadaLinea label="Subtotal 1" valor={resumen.subtotal_1} destacado />
+        <CascadaLinea label={`+ Costo Financiero (${resumen.costo_financiero_pct}%)`} valor={resumen.costo_financiero_monto} />
+        <CascadaLinea label="Subtotal 2" valor={resumen.subtotal_2} destacado />
+        <CascadaLinea label={`+ Beneficio (${resumen.beneficio_pct}%)`} valor={resumen.beneficio_monto} />
+        <CascadaLinea label="Subtotal 3" valor={resumen.subtotal_3} destacado />
         <CascadaLinea
-          label={`+ Impuestos (IVA ${cierre.impuestos.iva_pct}% + Rentas ${cierre.impuestos.rentas_pct}%)`}
-          valor={cierre.impuestos.monto}
+          label={`+ Impuestos (IVA ${resumen.impuestos.iva_pct}% + Rentas ${resumen.impuestos.rentas_pct}%)`}
+          valor={resumen.impuestos.monto}
         />
 
         <div
@@ -716,14 +709,14 @@ function TabPaqueteEmpresario({
         >
           <span style={{ fontSize: '22px', fontWeight: 700, color: '#1A1A2E' }}>Precio de la Obra</span>
           <span className="font-mono tabular-nums" style={{ fontSize: '22px', fontWeight: 700, color: '#1A1A2E' }}>
-            {formatPrecio(cierre.precio_final)}
+            {formatPrecio(resumen.precio_final)}
           </span>
         </div>
 
         <div className="px-6 py-5 flex justify-between items-center" style={{ background: coef.bg }}>
           <span style={{ fontSize: '18px', fontWeight: 700, color: '#1A1A2E' }}>Coeficiente de impactación</span>
           <span className="font-mono tabular-nums" style={{ fontSize: '22px', fontWeight: 700, color: coef.color }}>
-            {formatCoeficiente(cierre.coeficiente)}
+            {formatCoeficiente(resumen.coeficiente)}
           </span>
         </div>
       </div>
@@ -739,6 +732,200 @@ export default function PresupuestoPage() {
   const { lista: datos, cargando, error, refrescar } = usePresupuesto(obraId);
 
   const [tab, setTab] = useState<TabId>('costo-costo');
+
+  // Estado optimista: se seedea desde el servidor al cargar y a partir de ahí
+  // vive en el cliente. Cada edición lo recalcula al instante con
+  // calcularResumenLocal; el guardado real viaja a la API en paralelo.
+  const [gastosLocal, setGastosLocal] = useState<GastoGeneralCalculado[]>([]);
+  const [paqueteLocal, setPaqueteLocal] = useState<PaqueteLocal>({
+    costo_financiero: 0,
+    beneficio: 0,
+    iva: 0,
+    rentas: 0,
+  });
+  const [resumenLocal, setResumenLocal] = useState<CierrePresupuesto | null>(null);
+
+  // Al cargar (o tras cada refetch en background post-guardado), se
+  // sincroniza el estado local con el servidor. El panel solo se reemplaza
+  // si difiere en más de $1 del que ya se estaba mostrando — evita el
+  // parpadeo por redondeo cuando el optimista y el real ya coinciden.
+  useEffect(() => {
+    if (!datos) return;
+    setGastosLocal(datos.gastos_generales.lista);
+    setPaqueteLocal({
+      costo_financiero: datos.cierre.costo_financiero_pct,
+      beneficio: datos.cierre.beneficio_pct,
+      iva: datos.cierre.impuestos.iva_pct,
+      rentas: datos.cierre.impuestos.rentas_pct,
+    });
+    setResumenLocal((prev) =>
+      !prev || Math.abs(prev.precio_final - datos.cierre.precio_final) > 1 ? datos.cierre : prev,
+    );
+  }, [datos]);
+
+  function recalcular(gastos: GastoGeneralCalculado[], paquete: PaqueteLocal) {
+    if (!datos) return;
+    setResumenLocal(
+      calcularResumenLocal(
+        datos.costo_directo.costo_costo,
+        gastos.map((g) => ({ monto: g.monto, modalidad: g.modalidad, meses: g.meses })),
+        paquete,
+      ),
+    );
+  }
+
+  async function guardarGasto(id: string, cambios: Partial<Pick<GastoGeneral, 'descripcion' | 'modalidad' | 'monto' | 'meses'>>) {
+    const anterior = gastosLocal;
+    const gastoAnterior = anterior.find((g) => g.id === id);
+    if (!gastoAnterior) return;
+
+    const patch: GastoGeneralCalculado = { ...gastoAnterior, ...cambios };
+    if (patch.modalidad === 'unico') patch.meses = null;
+    patch.total = patch.modalidad === 'mensual' ? patch.monto * (patch.meses ?? 0) : patch.monto;
+
+    const optimista = anterior.map((g) => (g.id === id ? patch : g));
+    setGastosLocal(optimista);
+    recalcular(optimista, paqueteLocal);
+
+    try {
+      const res = await fetch(`/api/gastos-generales/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cambios),
+      });
+      const json: unknown = await res.json();
+      if (!res.ok) throw new Error((json as { error: string }).error ?? 'Error al guardar');
+      refrescar();
+    } catch (err) {
+      setGastosLocal(anterior);
+      recalcular(anterior, paqueteLocal);
+      throw err;
+    }
+  }
+
+  async function agregarGasto(categoria: GastoCategoria) {
+    const anterior = gastosLocal;
+    const tempId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const nuevo: GastoGeneralCalculado = {
+      id: tempId,
+      obra_id: obraId,
+      categoria,
+      descripcion: 'Nuevo gasto',
+      modalidad: 'unico',
+      monto: 0,
+      meses: null,
+      orden: 0,
+      created_at: new Date().toISOString(),
+      total: 0,
+    };
+    const optimista = [...anterior, nuevo];
+    setGastosLocal(optimista);
+    recalcular(optimista, paqueteLocal);
+
+    try {
+      const res = await fetch('/api/gastos-generales', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ obra_id: obraId, categoria, descripcion: 'Nuevo gasto', modalidad: 'unico', monto: 0 }),
+      });
+      const json: unknown = await res.json();
+      if (!res.ok) throw new Error((json as { error: string }).error ?? 'Error al crear el gasto');
+      const real = json as GastoGeneral;
+      setGastosLocal((prev) => prev.map((g) => (g.id === tempId ? { ...real, total: 0 } : g)));
+      refrescar();
+    } catch (err) {
+      setGastosLocal(anterior);
+      recalcular(anterior, paqueteLocal);
+      throw err;
+    }
+  }
+
+  async function eliminarGasto(id: string) {
+    const anterior = gastosLocal;
+    const optimista = anterior.filter((g) => g.id !== id);
+    setGastosLocal(optimista);
+    recalcular(optimista, paqueteLocal);
+
+    try {
+      const res = await fetch(`/api/gastos-generales/${id}`, { method: 'DELETE' });
+      const json: unknown = await res.json();
+      if (!res.ok) throw new Error((json as { error: string }).error ?? 'Error al eliminar el gasto');
+      refrescar();
+    } catch (err) {
+      setGastosLocal(anterior);
+      recalcular(anterior, paqueteLocal);
+      throw err;
+    }
+  }
+
+  async function guardarPlazo(nuevoPlazo: number) {
+    if (!datos) return;
+    const plazoAnterior = datos.obra.plazo_meses ?? 0;
+    const anterior = gastosLocal;
+
+    // Los gastos mensuales que todavía tienen el plazo anterior no fueron
+    // editados a mano: se propagan al nuevo plazo. Los demás se respetan.
+    const afectadosIds = anterior.filter((g) => g.modalidad === 'mensual' && g.meses === plazoAnterior).map((g) => g.id);
+    const optimista = anterior.map((g) =>
+      afectadosIds.includes(g.id) ? { ...g, meses: nuevoPlazo, total: g.monto * nuevoPlazo } : g,
+    );
+    setGastosLocal(optimista);
+    recalcular(optimista, paqueteLocal);
+
+    try {
+      const resObra = await fetch(`/api/obras/${obraId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: datos.obra.nombre,
+          cliente: datos.obra.cliente,
+          direccion: datos.obra.direccion,
+          fecha_inicio: datos.obra.fecha_inicio,
+          estado: datos.obra.estado,
+          plazo_meses: nuevoPlazo,
+        }),
+      });
+      const jsonObra: unknown = await resObra.json();
+      if (!resObra.ok) throw new Error((jsonObra as { error: string }).error ?? 'Error al guardar el plazo');
+
+      await Promise.all(
+        afectadosIds.map((id) =>
+          fetch(`/api/gastos-generales/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ meses: nuevoPlazo }),
+          }),
+        ),
+      );
+      refrescar();
+    } catch (err) {
+      setGastosLocal(anterior);
+      recalcular(anterior, paqueteLocal);
+      throw err;
+    }
+  }
+
+  async function guardarPaquete(campo: CampoPaquete, nuevoValor: number) {
+    const anterior = paqueteLocal;
+    const optimista = { ...anterior, [campo]: nuevoValor };
+    setPaqueteLocal(optimista);
+    recalcular(gastosLocal, optimista);
+
+    try {
+      const res = await fetch(`/api/paquete-empresario/${obraId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [campo]: nuevoValor }),
+      });
+      const json: unknown = await res.json();
+      if (!res.ok) throw new Error((json as { error: string }).error ?? 'Error al guardar');
+      refrescar();
+    } catch (err) {
+      setPaqueteLocal(anterior);
+      recalcular(gastosLocal, anterior);
+      throw err;
+    }
+  }
 
   const obraNombre = datos?.obra.nombre ?? '…';
 
@@ -789,7 +976,7 @@ export default function PresupuestoPage() {
           <div className="flex items-center justify-center h-64 flex-1">
             <p className="text-sm" style={{ color: '#EF4444' }}>{error}</p>
           </div>
-        ) : datos ? (
+        ) : datos && resumenLocal ? (
           <>
             <div className="flex-1 min-w-0">
               {/* Sub-pestañas internas */}
@@ -812,14 +999,22 @@ export default function PresupuestoPage() {
 
               {tab === 'costo-costo' && <TabCostoCosto datos={datos} obraId={obraId} />}
               {tab === 'gastos-generales' && (
-                <TabGastosGenerales datos={datos} obraId={obraId} onRefrescar={refrescar} />
+                <TabGastosGenerales
+                  gastos={gastosLocal}
+                  resumen={resumenLocal}
+                  plazoActual={datos.obra.plazo_meses ?? null}
+                  onGuardarGasto={guardarGasto}
+                  onAgregarGasto={agregarGasto}
+                  onEliminarGasto={eliminarGasto}
+                  onGuardarPlazo={guardarPlazo}
+                />
               )}
               {tab === 'paquete-empresario' && (
-                <TabPaqueteEmpresario cierre={datos.cierre} obraId={obraId} onRefrescar={refrescar} />
+                <TabPaqueteEmpresario paquete={paqueteLocal} resumen={resumenLocal} onGuardar={guardarPaquete} />
               )}
             </div>
 
-            <ResumenCascada cierre={datos.cierre} />
+            <ResumenCascada resumen={resumenLocal} />
           </>
         ) : null}
       </div>
