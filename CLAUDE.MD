@@ -43,6 +43,7 @@ Sistema de presupuestación de obras de construcción. Reemplaza Excel/Presto/Da
 - `useInsumos(tipo?)`, `useRecetas()`, `useObras(estado?)`, `useMediciones(obraId)`
 - `useRubros(obraId)`, `useItems(rubroId)` (nuevos)
 - Todos exponen: `lista, cargando, error, crear*, actualizar*, eliminar*`
+- `usePresupuesto(obraId)` — trae `GET /api/presupuesto/[obraId]` completo (solo lectura, sin CRUD); expone `lista, cargando, error`
 
 ## Estado actual del frontend
 - Layout + Sidebar funcionando
