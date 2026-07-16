@@ -1,27 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
-import { calcularPrecioReceta, calcularTotalesPresupuesto } from "@/lib/calculos";
-import type { Rubro, Item, Medicion, RecetaConInsumos, PresupuestoLinea } from "@/types";
+import { inicializarPaqueteEmpresario } from "@/lib/paqueteEmpresario";
+import {
+  calcularPrecioReceta,
+  resumirGastosGenerales,
+  calcularCierrePresupuesto,
+} from "@/lib/calculos";
+import type {
+  Rubro,
+  Item,
+  Medicion,
+  RecetaConInsumos,
+  GastoGeneral,
+  PaqueteEmpresario,
+  PresupuestoRubro,
+  PresupuestoItem,
+} from "@/types";
 
 // Tipos locales para la respuesta anidada de Supabase
 type MedicionResumen = Pick<Medicion, "id" | "item_id" | "cantidad_calculada">;
 type ItemPresupuesto = Item & { receta?: RecetaConInsumos | null; mediciones: MedicionResumen[] };
 type RubroPresupuesto = Rubro & { items: ItemPresupuesto[] };
 
-const TOTALES_VACIOS = {
-  subtotal: 0,
-  gastos_generales: 0,
-  costo_financiero: 0,
-  beneficio: 0,
-  impuestos: 0,
-  total: 0,
-  coeficiente: 0,
-};
+// Defaults del paquete si por algún motivo no se pudo leer la fila.
+const PAQUETE_DEFAULT: Pick<
+  PaqueteEmpresario,
+  "costo_financiero" | "beneficio" | "iva" | "rentas"
+> = { costo_financiero: 5, beneficio: 10, iva: 21, rentas: 2.75 };
 
 // GET /api/presupuesto/[obraId]
-// Los porcentajes de gastos generales, costo financiero, beneficio e impuestos
-// se leen de la obra (columnas gastos_generales_pct, costo_financiero_pct,
-// beneficio_pct, impuestos_pct), no de valores fijos en el código.
+// Ya no recibe porcentajes por query params: lee todo de la base (paquete
+// empresario + gastos generales), inicializándolos si la obra aún no los tiene.
 export async function GET(
   _request: NextRequest,
   { params }: { params: { obraId: string } },
@@ -40,19 +49,10 @@ export async function GET(
       return NextResponse.json({ error: "Obra no encontrada" }, { status: 404 });
     }
 
-    const pctGastosGenerales = Number(obra.gastos_generales_pct ?? 10);
-    const pctCostoFinanciero = Number(obra.costo_financiero_pct ?? 0);
-    const pctBeneficio = Number(obra.beneficio_pct ?? 15);
-    const pctImpuestos = Number(obra.impuestos_pct ?? 21);
+    // Crea paquete_empresario + semilla de gastos_generales si aún no existen.
+    await inicializarPaqueteEmpresario(supabase, params.obraId);
 
-    const coeficientes = {
-      gastos_generales: pctGastosGenerales,
-      costo_financiero: pctCostoFinanciero,
-      beneficio: pctBeneficio,
-      impuestos: pctImpuestos,
-    };
-
-    // Traer rubros con items, recetas (ingredientes+insumos) y mediciones
+    // ── Costo directo: rubros → items → receta (ingredientes) + mediciones ──
     const { data: rubrosData, error: rubrosError } = await supabase
       .from("rubros")
       .select(`
@@ -78,36 +78,26 @@ export async function GET(
 
     if (rubrosError) throw rubrosError;
 
-    if (!rubrosData || rubrosData.length === 0) {
-      return NextResponse.json(
-        { obra, lineas: [], totales: TOTALES_VACIOS, coeficientes },
-        { status: 200 },
-      );
-    }
+    const rubros = (rubrosData ?? []) as RubroPresupuesto[];
 
-    const rubros = rubrosData as RubroPresupuesto[];
-
-    // Construir una línea de presupuesto por cada ítem
-    const lineas: PresupuestoLinea[] = [];
-
+    const rubrosCalculados: PresupuestoRubro[] = [];
     for (const rubro of rubros) {
       const itemsOrdenados = [...rubro.items].sort((a, b) => a.orden - b.orden);
+      const items: PresupuestoItem[] = [];
 
       for (const item of itemsOrdenados) {
         if (!item.receta) continue;
 
         const cantidad_total = item.mediciones.reduce(
-          (sum, m) => sum + m.cantidad_calculada,
+          (suma, m) => suma + Number(m.cantidad_calculada),
           0,
         );
         const precio_unitario = calcularPrecioReceta(item.receta.ingredientes);
         const subtotal = cantidad_total * precio_unitario;
 
-        lineas.push({
-          rubro_id: rubro.id,
-          rubro_nombre: rubro.nombre,
+        items.push({
           item_id: item.id,
-          receta_id: item.receta_id ?? '',
+          receta_id: item.receta_id ?? "",
           receta_nombre: item.receta.nombre,
           unidad: item.unidad_medida,
           cantidad_total,
@@ -115,17 +105,57 @@ export async function GET(
           subtotal,
         });
       }
+
+      const subtotalRubro = items.reduce((suma, it) => suma + it.subtotal, 0);
+      rubrosCalculados.push({
+        rubro_id: rubro.id,
+        rubro_nombre: rubro.nombre,
+        items,
+        subtotal: subtotalRubro,
+      });
     }
 
-    const totales = calcularTotalesPresupuesto(
-      lineas,
-      pctGastosGenerales,
-      pctCostoFinanciero,
-      pctBeneficio,
-      pctImpuestos,
+    const costo_costo = rubrosCalculados.reduce((suma, r) => suma + r.subtotal, 0);
+
+    // ── Gastos generales ──────────────────────────────────────────────────
+    const { data: gastosData, error: gastosError } = await supabase
+      .from("gastos_generales")
+      .select("*")
+      .eq("obra_id", params.obraId)
+      .order("orden", { ascending: true });
+
+    if (gastosError) throw gastosError;
+
+    const gastos = (gastosData ?? []) as GastoGeneral[];
+    const gastosGenerales = resumirGastosGenerales(gastos, costo_costo);
+
+    // ── Paquete empresario (porcentajes del cierre) ───────────────────────
+    const { data: paqueteData, error: paqueteError } = await supabase
+      .from("paquete_empresario")
+      .select("*")
+      .eq("obra_id", params.obraId)
+      .maybeSingle();
+
+    if (paqueteError) throw paqueteError;
+
+    const paquete = (paqueteData as PaqueteEmpresario | null) ?? PAQUETE_DEFAULT;
+
+    // ── Cierre en cascada ─────────────────────────────────────────────────
+    const cierre = calcularCierrePresupuesto(
+      costo_costo,
+      gastosGenerales.total,
+      paquete,
     );
 
-    return NextResponse.json({ obra, lineas, totales, coeficientes }, { status: 200 });
+    return NextResponse.json(
+      {
+        obra,
+        costo_directo: { rubros: rubrosCalculados, costo_costo },
+        gastos_generales: gastosGenerales,
+        cierre,
+      },
+      { status: 200 },
+    );
   } catch (error) {
     const mensaje = error instanceof Error ? error.message : "Error interno del servidor";
     return NextResponse.json({ error: mensaje }, { status: 500 });

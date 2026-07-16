@@ -1,4 +1,9 @@
 import type {
+  CierrePresupuesto,
+  GastoGeneral,
+  GastoGeneralCalculado,
+  GastosGeneralesResumen,
+  PaqueteEmpresario,
   PresupuestoLinea,
   RecetaConInsumos,
 } from "../types";
@@ -103,6 +108,99 @@ export function calcularTotalesPresupuesto(
     beneficio,
     impuestos,
     total,
+    coeficiente,
+  };
+}
+
+/* ─── Paquete Empresario ───────────────────────────────────────────────────── */
+
+/**
+ * Calcula el total de una línea de gastos generales.
+ * Mensual: monto × meses (meses ausente se toma como 0). Único: monto.
+ */
+export function calcularTotalGasto(gasto: GastoGeneral): number {
+  if (gasto.modalidad === "mensual") {
+    return gasto.monto * (gasto.meses ?? 0);
+  }
+  return gasto.monto;
+}
+
+/**
+ * Resume los gastos generales de una obra: cada línea con su total, el total
+ * general y el porcentaje que representan sobre el costo directo (costo_costo).
+ *
+ * @param gastos Filas de gastos_generales de la obra.
+ * @param costoCosto Costo directo total, usado como base del porcentaje derivado.
+ */
+export function resumirGastosGenerales(
+  gastos: GastoGeneral[],
+  costoCosto: number,
+): GastosGeneralesResumen {
+  const lista: GastoGeneralCalculado[] = gastos.map((gasto) => ({
+    ...gasto,
+    total: calcularTotalGasto(gasto),
+  }));
+
+  const total = lista.reduce((suma, gasto) => suma + gasto.total, 0);
+  const porcentaje_derivado = costoCosto > 0 ? (total / costoCosto) * 100 : 0;
+
+  return { lista, total, porcentaje_derivado };
+}
+
+/**
+ * Cascada del cierre empresario. Cada porcentaje se aplica sobre el subtotal
+ * acumulado inmediatamente anterior, nunca sobre el costo_costo:
+ *
+ *   subtotal_1 = costo_costo + gastos_generales
+ *   costo financiero = subtotal_1 × cf%      → subtotal_2
+ *   beneficio        = subtotal_2 × ben%     → subtotal_3
+ *   impuestos        = subtotal_3 × (iva% + rentas%)
+ *   precio_final     = subtotal_3 + impuestos
+ *   coeficiente      = precio_final / costo_costo
+ *
+ * @param costoCosto Costo directo total.
+ * @param totalGastosGenerales Total de gastos generales ya sumado.
+ * @param paquete Porcentajes del cierre (enteros de porcentaje: 5 = 5%).
+ */
+export function calcularCierrePresupuesto(
+  costoCosto: number,
+  totalGastosGenerales: number,
+  paquete: Pick<PaqueteEmpresario, "costo_financiero" | "beneficio" | "iva" | "rentas">,
+): CierrePresupuesto {
+  const costo_financiero_pct = Number(paquete.costo_financiero);
+  const beneficio_pct = Number(paquete.beneficio);
+  const iva_pct = Number(paquete.iva);
+  const rentas_pct = Number(paquete.rentas);
+
+  const subtotal_1 = costoCosto + totalGastosGenerales;
+
+  const costo_financiero_monto = aplicarPorcentaje(subtotal_1, costo_financiero_pct);
+  const subtotal_2 = subtotal_1 + costo_financiero_monto;
+
+  const beneficio_monto = aplicarPorcentaje(subtotal_2, beneficio_pct);
+  const subtotal_3 = subtotal_2 + beneficio_monto;
+
+  const impuestos_monto = aplicarPorcentaje(subtotal_3, iva_pct + rentas_pct);
+  const precio_final = subtotal_3 + impuestos_monto;
+
+  const coeficiente = costoCosto > 0 ? precio_final / costoCosto : 0;
+
+  return {
+    costo_costo: costoCosto,
+    gastos_generales: totalGastosGenerales,
+    subtotal_1,
+    costo_financiero_pct,
+    costo_financiero_monto,
+    subtotal_2,
+    beneficio_pct,
+    beneficio_monto,
+    subtotal_3,
+    impuestos: {
+      iva_pct,
+      rentas_pct,
+      monto: impuestos_monto,
+    },
+    precio_final,
     coeficiente,
   };
 }

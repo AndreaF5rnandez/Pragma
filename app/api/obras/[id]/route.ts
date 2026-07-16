@@ -47,6 +47,7 @@ export async function PUT(
       cliente,
       direccion,
       fecha_inicio,
+      plazo_meses,
       estado,
       gastos_generales_pct,
       costo_financiero_pct,
@@ -77,6 +78,17 @@ export async function PUT(
       );
     }
 
+    if (
+      plazo_meses !== undefined &&
+      plazo_meses !== null &&
+      (typeof plazo_meses !== "number" || !Number.isInteger(plazo_meses) || plazo_meses < 0)
+    ) {
+      return NextResponse.json(
+        { error: "El plazo_meses debe ser un número entero mayor o igual a 0" },
+        { status: 400 }
+      );
+    }
+
     for (const [campo, valor] of [
       ["gastos_generales_pct", gastos_generales_pct],
       ["costo_financiero_pct", costo_financiero_pct],
@@ -96,6 +108,7 @@ export async function PUT(
       cliente: cliente.trim(),
       ...(direccion !== undefined && { direccion: direccion?.trim() || null }),
       ...(fecha_inicio !== undefined && { fecha_inicio: fecha_inicio || null }),
+      ...(plazo_meses !== undefined && { plazo_meses: plazo_meses === null ? null : plazo_meses }),
       ...(estado && { estado }),
       ...(gastos_generales_pct !== undefined && { gastos_generales_pct }),
       ...(costo_financiero_pct !== undefined && { costo_financiero_pct }),

@@ -31,7 +31,11 @@ export interface Obra {
   cliente: string;
   direccion?: string;
   fecha_inicio?: string;
+  plazo_meses?: number | null;
   estado: "activa" | "pausada" | "finalizada";
+  // Porcentajes legacy (previos al Paquete Empresario). El cálculo del
+  // presupuesto ya no los usa: viven en paquete_empresario. Se conservan
+  // mientras la pantalla vieja se termina de migrar.
   gastos_generales_pct?: number;
   costo_financiero_pct?: number;
   beneficio_pct?: number;
@@ -40,15 +44,30 @@ export interface Obra {
   updated_at: string;
 }
 
+export type GastoCategoria = "GGDOO" | "GGDOE" | "GGI";
+export type GastoModalidad = "mensual" | "unico";
+
 export interface GastoGeneral {
   id: string;
   obra_id: string;
-  concepto: string;
+  categoria: GastoCategoria;
+  descripcion: string;
+  modalidad: GastoModalidad;
   monto: number;
-  es_predefinido: boolean;
+  // Solo se usa cuando modalidad === "mensual".
+  meses: number | null;
   orden: number;
   created_at: string;
-  updated_at: string;
+}
+
+export interface PaqueteEmpresario {
+  id: string;
+  obra_id: string;
+  costo_financiero: number;
+  beneficio: number;
+  iva: number;
+  rentas: number;
+  created_at: string;
 }
 
 export interface Rubro {
@@ -125,4 +144,66 @@ export interface PresupuestoLinea {
   cantidad_total: number;
   precio_unitario: number;
   subtotal: number;
+}
+
+/* ─── Paquete Empresario: forma de respuesta de /api/presupuesto ──────────── */
+
+export interface PresupuestoItem {
+  item_id: string;
+  receta_id: string;
+  receta_nombre: string;
+  unidad: string;
+  cantidad_total: number;
+  precio_unitario: number;
+  subtotal: number;
+}
+
+export interface PresupuestoRubro {
+  rubro_id: string;
+  rubro_nombre: string;
+  items: PresupuestoItem[];
+  subtotal: number;
+}
+
+export interface CostoDirecto {
+  rubros: PresupuestoRubro[];
+  costo_costo: number;
+}
+
+export interface GastoGeneralCalculado extends GastoGeneral {
+  total: number;
+}
+
+export interface GastosGeneralesResumen {
+  lista: GastoGeneralCalculado[];
+  total: number;
+  porcentaje_derivado: number;
+}
+
+export interface CierreImpuestos {
+  iva_pct: number;
+  rentas_pct: number;
+  monto: number;
+}
+
+export interface CierrePresupuesto {
+  costo_costo: number;
+  gastos_generales: number;
+  subtotal_1: number;
+  costo_financiero_pct: number;
+  costo_financiero_monto: number;
+  subtotal_2: number;
+  beneficio_pct: number;
+  beneficio_monto: number;
+  subtotal_3: number;
+  impuestos: CierreImpuestos;
+  precio_final: number;
+  coeficiente: number;
+}
+
+export interface PresupuestoResponse {
+  obra: Obra;
+  costo_directo: CostoDirecto;
+  gastos_generales: GastosGeneralesResumen;
+  cierre: CierrePresupuesto;
 }
