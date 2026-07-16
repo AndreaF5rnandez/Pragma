@@ -503,7 +503,7 @@ function TabGastosGenerales({
   const pctSobreDirecto = resumen.costo_costo > 0 ? (resumen.gastos_generales / resumen.costo_costo) * 100 : 0;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 pb-8">
       {/* Plazo de la obra */}
       <div className="overflow-hidden" style={GLASS_CARD}>
         <div className="px-6 py-4 flex items-center gap-3 flex-wrap">
@@ -679,7 +679,7 @@ function TabPaqueteEmpresario({
   const coef = colorCoeficiente(resumen.coeficiente);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 pb-12">
       <div className="overflow-hidden p-6" style={GLASS_CARD}>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
           {campoInput('costo_financiero', 'Costo Financiero')}
@@ -707,15 +707,15 @@ function TabPaqueteEmpresario({
           className="px-6 py-5 flex justify-between items-center"
           style={{ borderTop: '2px solid rgba(0,0,0,0.10)', background: 'rgba(200,230,76,0.15)' }}
         >
-          <span style={{ fontSize: '22px', fontWeight: 700, color: '#1A1A2E' }}>Precio de la Obra</span>
-          <span className="font-mono tabular-nums" style={{ fontSize: '22px', fontWeight: 700, color: '#1A1A2E' }}>
+          <span className="text-2xl" style={{ fontWeight: 700, color: '#1A1A2E' }}>Precio de la Obra</span>
+          <span className="text-2xl font-mono tabular-nums" style={{ fontWeight: 700, color: '#1A1A2E' }}>
             {formatPrecio(resumen.precio_final)}
           </span>
         </div>
 
         <div className="px-6 py-5 flex justify-between items-center" style={{ background: coef.bg }}>
           <span style={{ fontSize: '18px', fontWeight: 700, color: '#1A1A2E' }}>Coeficiente de impactación</span>
-          <span className="font-mono tabular-nums" style={{ fontSize: '22px', fontWeight: 700, color: coef.color }}>
+          <span className="text-3xl font-mono tabular-nums" style={{ fontWeight: 700, color: coef.color }}>
             {formatCoeficiente(resumen.coeficiente)}
           </span>
         </div>
@@ -745,6 +745,13 @@ export default function PresupuestoPage() {
   });
   const [resumenLocal, setResumenLocal] = useState<CierrePresupuesto | null>(null);
 
+  // Plazo de la obra: se rastrea localmente (no solo `datos.obra.plazo_meses`)
+  // porque la propagación a gastos mensuales necesita comparar contra el
+  // último valor efectivamente guardado, no contra el que devolvió el
+  // servidor la última vez que resolvió el refetch. El default `?? 1` replica
+  // el que usa la API al crear un gasto mensual sin meses explícitos.
+  const [plazoLocal, setPlazoLocal] = useState<number>(1);
+
   // Al cargar (o tras cada refetch en background post-guardado), se
   // sincroniza el estado local con el servidor. El panel solo se reemplaza
   // si difiere en más de $1 del que ya se estaba mostrando — evita el
@@ -758,6 +765,7 @@ export default function PresupuestoPage() {
       iva: datos.cierre.impuestos.iva_pct,
       rentas: datos.cierre.impuestos.rentas_pct,
     });
+    setPlazoLocal(datos.obra.plazo_meses ?? 1);
     setResumenLocal((prev) =>
       !prev || Math.abs(prev.precio_final - datos.cierre.precio_final) > 1 ? datos.cierre : prev,
     );
@@ -832,7 +840,6 @@ export default function PresupuestoPage() {
       if (!res.ok) throw new Error((json as { error: string }).error ?? 'Error al crear el gasto');
       const real = json as GastoGeneral;
       setGastosLocal((prev) => prev.map((g) => (g.id === tempId ? { ...real, total: 0 } : g)));
-      refrescar();
     } catch (err) {
       setGastosLocal(anterior);
       recalcular(anterior, paqueteLocal);
@@ -860,7 +867,7 @@ export default function PresupuestoPage() {
 
   async function guardarPlazo(nuevoPlazo: number) {
     if (!datos) return;
-    const plazoAnterior = datos.obra.plazo_meses ?? 0;
+    const plazoAnterior = plazoLocal;
     const anterior = gastosLocal;
 
     // Los gastos mensuales que todavía tienen el plazo anterior no fueron
@@ -870,6 +877,7 @@ export default function PresupuestoPage() {
       afectadosIds.includes(g.id) ? { ...g, meses: nuevoPlazo, total: g.monto * nuevoPlazo } : g,
     );
     setGastosLocal(optimista);
+    setPlazoLocal(nuevoPlazo);
     recalcular(optimista, paqueteLocal);
 
     try {
@@ -900,6 +908,7 @@ export default function PresupuestoPage() {
       refrescar();
     } catch (err) {
       setGastosLocal(anterior);
+      setPlazoLocal(plazoAnterior);
       recalcular(anterior, paqueteLocal);
       throw err;
     }
@@ -1002,7 +1011,7 @@ export default function PresupuestoPage() {
                 <TabGastosGenerales
                   gastos={gastosLocal}
                   resumen={resumenLocal}
-                  plazoActual={datos.obra.plazo_meses ?? null}
+                  plazoActual={plazoLocal}
                   onGuardarGasto={guardarGasto}
                   onAgregarGasto={agregarGasto}
                   onEliminarGasto={eliminarGasto}
