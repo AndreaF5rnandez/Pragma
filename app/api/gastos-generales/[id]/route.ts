@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { loguearError } from "@/lib/apiError";
 import type { GastoCategoria, GastoModalidad } from "@/types";
 
 const CATEGORIAS: GastoCategoria[] = ["GGDOO", "GGDOE", "GGI"];
@@ -28,7 +29,7 @@ export async function GET(
 
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
-    const mensaje = error instanceof Error ? error.message : "Error interno del servidor";
+    const mensaje = loguearError("GET /api/gastos-generales/[id]", error);
     return NextResponse.json({ error: mensaje }, { status: 500 });
   }
 }
@@ -128,7 +129,7 @@ export async function PUT(
 
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
-    const mensaje = error instanceof Error ? error.message : "Error interno del servidor";
+    const mensaje = loguearError("PUT /api/gastos-generales/[id]", error);
     return NextResponse.json({ error: mensaje }, { status: 500 });
   }
 }
@@ -166,7 +167,7 @@ export async function DELETE(
       { status: 200 },
     );
   } catch (error) {
-    const mensaje = error instanceof Error ? error.message : "Error interno del servidor";
+    const mensaje = loguearError("DELETE /api/gastos-generales/[id]", error);
     return NextResponse.json({ error: mensaje }, { status: 500 });
   }
 }

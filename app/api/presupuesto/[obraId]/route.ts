@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { inicializarPaqueteEmpresario } from "@/lib/paqueteEmpresario";
+import { loguearError } from "@/lib/apiError";
 import {
   calcularPrecioReceta,
   resumirGastosGenerales,
@@ -157,7 +158,7 @@ export async function GET(
       { status: 200 },
     );
   } catch (error) {
-    const mensaje = error instanceof Error ? error.message : "Error interno del servidor";
+    const mensaje = loguearError("GET /api/presupuesto/[obraId]", error);
     return NextResponse.json({ error: mensaje }, { status: 500 });
   }
 }

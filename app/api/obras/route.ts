@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { inicializarPaqueteEmpresario } from "@/lib/paqueteEmpresario";
+import { loguearError } from "@/lib/apiError";
 import { Obra } from "@/types";
 
 // GET /api/obras
@@ -32,11 +33,9 @@ export async function GET(request: NextRequest) {
     if (error) throw error;
 
     return NextResponse.json(data, { status: 200 });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || "Error interno del servidor" },
-      { status: 500 }
-    );
+  } catch (error) {
+    const mensaje = loguearError("GET /api/obras", error);
+    return NextResponse.json({ error: mensaje }, { status: 500 });
   }
 }
 
@@ -88,10 +87,8 @@ export async function POST(request: NextRequest) {
     await inicializarPaqueteEmpresario(supabase, data.id);
 
     return NextResponse.json(data, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || "Error interno del servidor" },
-      { status: 500 }
-    );
+  } catch (error) {
+    const mensaje = loguearError("POST /api/obras", error);
+    return NextResponse.json({ error: mensaje }, { status: 500 });
   }
 }

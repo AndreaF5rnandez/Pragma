@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
+import { loguearError } from "@/lib/apiError";
 import { Obra } from "@/types";
 
 // GET /api/obras/[id]
@@ -24,11 +25,9 @@ export async function GET(
     }
 
     return NextResponse.json(data, { status: 200 });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || "Error interno del servidor" },
-      { status: 500 }
-    );
+  } catch (error) {
+    const mensaje = loguearError("GET /api/obras/[id]", error);
+    return NextResponse.json({ error: mensaje }, { status: 500 });
   }
 }
 
@@ -131,11 +130,9 @@ export async function PUT(
     }
 
     return NextResponse.json(data, { status: 200 });
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || "Error interno del servidor" },
-      { status: 500 }
-    );
+  } catch (error) {
+    const mensaje = loguearError("PUT /api/obras/[id]", error);
+    return NextResponse.json({ error: mensaje }, { status: 500 });
   }
 }
 
@@ -195,10 +192,8 @@ export async function DELETE(
       { message: "Obra eliminada correctamente" },
       { status: 200 }
     );
-  } catch (error: any) {
-    return NextResponse.json(
-      { error: error.message || "Error interno del servidor" },
-      { status: 500 }
-    );
+  } catch (error) {
+    const mensaje = loguearError("DELETE /api/obras/[id]", error);
+    return NextResponse.json({ error: mensaje }, { status: 500 });
   }
 }

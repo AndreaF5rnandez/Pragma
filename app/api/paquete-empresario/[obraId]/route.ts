@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import { inicializarPaqueteEmpresario } from "@/lib/paqueteEmpresario";
+import { loguearError } from "@/lib/apiError";
 
 const CAMPOS = ["costo_financiero", "beneficio", "iva", "rentas"] as const;
 type CampoPaquete = (typeof CAMPOS)[number];
@@ -32,7 +33,7 @@ export async function GET(
 
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
-    const mensaje = error instanceof Error ? error.message : "Error interno del servidor";
+    const mensaje = loguearError("GET /api/paquete-empresario/[obraId]", error);
     return NextResponse.json({ error: mensaje }, { status: 500 });
   }
 }
@@ -85,7 +86,7 @@ export async function PUT(
 
     return NextResponse.json(data, { status: 200 });
   } catch (error) {
-    const mensaje = error instanceof Error ? error.message : "Error interno del servidor";
+    const mensaje = loguearError("PUT /api/paquete-empresario/[obraId]", error);
     return NextResponse.json({ error: mensaje }, { status: 500 });
   }
 }
