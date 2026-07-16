@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { PresupuestoResponse } from "../types";
 
 export function usePresupuesto(obraId: string) {
@@ -6,24 +6,28 @@ export function usePresupuesto(obraId: string) {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let activo = true;
+  const cargar = useCallback(async () => {
     setCargando(true);
     setError(null);
-
-    fetch(`/api/presupuesto/${obraId}`)
-      .then(async (res) => {
-        const json: unknown = await res.json();
-        if (!res.ok) throw new Error((json as { error: string }).error ?? "Error al cargar presupuesto");
-        if (activo) setLista(json as PresupuestoResponse);
-      })
-      .catch((err: Error) => { if (activo) setError(err.message); })
-      .finally(() => { if (activo) setCargando(false); });
-
-    return () => { activo = false; };
+    try {
+      const res = await fetch(`/api/presupuesto/${obraId}`);
+      const json: unknown = await res.json();
+      if (!res.ok) throw new Error((json as { error: string }).error ?? "Error al cargar presupuesto");
+      setLista(json as PresupuestoResponse);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al cargar presupuesto");
+    } finally {
+      setCargando(false);
+    }
   }, [obraId]);
 
-  return { lista, cargando, error };
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
+
+  // Se llama después de cada guardado (gasto, plazo, porcentaje) para traer
+  // el presupuesto recalculado de punta a punta — no hay recálculo en cliente.
+  return { lista, cargando, error, refrescar: cargar };
 }
 
 export default usePresupuesto;

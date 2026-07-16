@@ -1,10 +1,10 @@
 'use client';
 
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { usePresupuesto } from '@/hooks/usePresupuesto';
-import type { PresupuestoResponse } from '@/types';
+import type { GastoCategoria, GastoGeneral, GastoGeneralCalculado, PresupuestoResponse } from '@/types';
 
 /* ─── Tipos locales ────────────────────────────────────────────────────────── */
 
@@ -15,6 +15,14 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'gastos-generales', label: 'Gastos Generales' },
   { id: 'paquete-empresario', label: 'Paquete Empresario' },
 ];
+
+const CATEGORIAS: { id: GastoCategoria; nombre: string }[] = [
+  { id: 'GGDOO', nombre: 'GGDOO — Directos de Obra Ordinarios' },
+  { id: 'GGDOE', nombre: 'GGDOE — Directos de Obra Extraordinarios' },
+  { id: 'GGI', nombre: 'GGI — Indirectos' },
+];
+
+type CampoPaquete = 'costo_financiero' | 'beneficio' | 'iva' | 'rentas';
 
 /* ─── Helpers ──────────────────────────────────────────────────────────────── */
 
@@ -77,6 +85,12 @@ const GLASS_ELEVATED: React.CSSProperties = {
   border: '1px solid rgba(255, 255, 255, 0.50)',
   borderRadius: '20px',
   boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
+};
+
+const INPUT_STYLE: React.CSSProperties = {
+  color: '#1A1A2E',
+  borderColor: 'rgba(0,0,0,0.12)',
+  background: 'rgba(255,255,255,0.6)',
 };
 
 /* ─── ResumenCascada ───────────────────────────────────────────────────────── */
@@ -267,13 +281,452 @@ function TabCostoCosto({ datos, obraId }: { datos: PresupuestoResponse; obraId: 
   );
 }
 
-/* ─── Placeholder ──────────────────────────────────────────────────────────── */
+/* ─── GastoGeneralRow ──────────────────────────────────────────────────────── */
+/* Renglón de gasto general: descripción editable, modalidad (toggle),
+ * monto editable, meses editable si es mensual, y el total ya calculado
+ * por el servidor (calcularTotalGasto). Autosave al perder foco. */
 
-function TabPlaceholder({ titulo }: { titulo: string }) {
+function GastoGeneralRow({
+  gasto,
+  guardando,
+  onGuardar,
+  onEliminar,
+}: {
+  gasto: GastoGeneralCalculado;
+  guardando: boolean;
+  onGuardar: (cambios: Partial<Pick<GastoGeneral, 'descripcion' | 'modalidad' | 'monto' | 'meses'>>) => void;
+  onEliminar: () => void;
+}) {
+  const [descripcion, setDescripcion] = useState(gasto.descripcion);
+  const [monto, setMonto] = useState(String(gasto.monto));
+  const [meses, setMeses] = useState(String(gasto.meses ?? ''));
+
+  useEffect(() => setDescripcion(gasto.descripcion), [gasto.descripcion]);
+  useEffect(() => setMonto(String(gasto.monto)), [gasto.monto]);
+  useEffect(() => setMeses(String(gasto.meses ?? '')), [gasto.meses]);
+
+  function confirmarDescripcion() {
+    const valor = descripcion.trim();
+    if (!valor || valor === gasto.descripcion) { setDescripcion(gasto.descripcion); return; }
+    onGuardar({ descripcion: valor });
+  }
+
+  function confirmarMonto() {
+    const num = Number(monto);
+    if (Number.isNaN(num) || num < 0 || num === gasto.monto) { setMonto(String(gasto.monto)); return; }
+    onGuardar({ monto: num });
+  }
+
+  function confirmarMeses() {
+    const num = Number(meses);
+    if (!Number.isInteger(num) || num < 0 || num === gasto.meses) { setMeses(String(gasto.meses ?? '')); return; }
+    onGuardar({ meses: num });
+  }
+
   return (
-    <div className="flex flex-col items-center justify-center h-64 gap-2" style={GLASS_CARD}>
-      <span className="text-base font-semibold" style={{ color: '#1A1A2E' }}>{titulo}</span>
-      <p className="text-sm" style={{ color: '#6B7080' }}>En construcción.</p>
+    <div className="px-6 py-3 flex items-center gap-3 flex-wrap" style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+      <input
+        type="text"
+        value={descripcion}
+        onChange={(e) => setDescripcion(e.target.value)}
+        onBlur={confirmarDescripcion}
+        onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+        className="flex-1 min-w-[160px] text-sm bg-transparent border-b border-transparent hover:border-black/10 focus:outline-none focus:border-b-[#C8E64C] transition-colors"
+        style={{ color: '#1A1A2E' }}
+      />
+
+      <button
+        onClick={() => onGuardar({ modalidad: gasto.modalidad === 'mensual' ? 'unico' : 'mensual' })}
+        className="text-xs font-semibold px-3 py-1 rounded-full transition-colors shrink-0"
+        style={{
+          background: gasto.modalidad === 'mensual' ? '#C8E64C' : 'rgba(0,0,0,0.06)',
+          color: gasto.modalidad === 'mensual' ? '#2A3300' : '#6B7080',
+        }}
+        title="Click para alternar modalidad"
+      >
+        {gasto.modalidad === 'mensual' ? 'Mensual' : 'Único'}
+      </button>
+
+      <div className="flex items-center gap-1 shrink-0">
+        <span className="text-xs" style={{ color: '#9CA3AF' }}>$</span>
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          value={monto}
+          onChange={(e) => setMonto(e.target.value)}
+          onBlur={confirmarMonto}
+          onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+          className="w-24 text-right font-mono tabular-nums border rounded-[6px] px-1.5 py-1 focus:outline-none"
+          style={INPUT_STYLE}
+        />
+      </div>
+
+      {gasto.modalidad === 'mensual' && (
+        <div className="flex items-center gap-1 shrink-0">
+          <input
+            type="number"
+            min="0"
+            step="1"
+            value={meses}
+            onChange={(e) => setMeses(e.target.value)}
+            onBlur={confirmarMeses}
+            onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+            className="w-14 text-right font-mono tabular-nums border rounded-[6px] px-1.5 py-1 focus:outline-none"
+            style={INPUT_STYLE}
+          />
+          <span className="text-xs" style={{ color: '#9CA3AF' }}>meses</span>
+        </div>
+      )}
+
+      <span className="w-28 text-right text-sm font-semibold font-mono tabular-nums shrink-0" style={{ color: '#1A1A2E' }}>
+        {formatPrecio(gasto.total)}
+      </span>
+
+      {guardando && <span className="text-xs shrink-0" style={{ color: '#9CA3AF' }}>…</span>}
+
+      <button
+        onClick={onEliminar}
+        className="text-xs shrink-0 hover:opacity-70 transition-opacity"
+        style={{ color: '#EF4444' }}
+        title="Eliminar gasto"
+      >
+        ✕
+      </button>
+    </div>
+  );
+}
+
+/* ─── TabGastosGenerales ───────────────────────────────────────────────────── */
+
+function TabGastosGenerales({
+  datos,
+  obraId,
+  onRefrescar,
+}: {
+  datos: PresupuestoResponse;
+  obraId: string;
+  onRefrescar: () => void;
+}) {
+  const [plazoBorrador, setPlazoBorrador] = useState(String(datos.obra.plazo_meses ?? ''));
+  const [guardandoPlazo, setGuardandoPlazo] = useState(false);
+  const [errorPlazo, setErrorPlazo] = useState<string | null>(null);
+
+  useEffect(() => setPlazoBorrador(String(datos.obra.plazo_meses ?? '')), [datos.obra.plazo_meses]);
+
+  const [guardandoId, setGuardandoId] = useState<string | null>(null);
+  const [errorGuardado, setErrorGuardado] = useState<string | null>(null);
+
+  async function confirmarPlazo() {
+    const num = Number(plazoBorrador);
+    const actual = datos.obra.plazo_meses ?? 0;
+    if (!Number.isInteger(num) || num < 0 || num === actual) {
+      setPlazoBorrador(String(datos.obra.plazo_meses ?? ''));
+      return;
+    }
+    setGuardandoPlazo(true);
+    setErrorPlazo(null);
+    try {
+      const res = await fetch(`/api/obras/${obraId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: datos.obra.nombre,
+          cliente: datos.obra.cliente,
+          direccion: datos.obra.direccion,
+          fecha_inicio: datos.obra.fecha_inicio,
+          estado: datos.obra.estado,
+          plazo_meses: num,
+        }),
+      });
+      const json: unknown = await res.json();
+      if (!res.ok) throw new Error((json as { error: string }).error ?? 'Error al guardar el plazo');
+      onRefrescar();
+    } catch (err) {
+      setErrorPlazo(err instanceof Error ? err.message : 'Error al guardar el plazo');
+    } finally {
+      setGuardandoPlazo(false);
+    }
+  }
+
+  async function guardarGasto(id: string, cambios: Partial<Pick<GastoGeneral, 'descripcion' | 'modalidad' | 'monto' | 'meses'>>) {
+    setGuardandoId(id);
+    setErrorGuardado(null);
+    try {
+      const res = await fetch(`/api/gastos-generales/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cambios),
+      });
+      const json: unknown = await res.json();
+      if (!res.ok) throw new Error((json as { error: string }).error ?? 'Error al guardar');
+      onRefrescar();
+    } catch (err) {
+      setErrorGuardado(err instanceof Error ? err.message : 'Error al guardar');
+    } finally {
+      setGuardandoId(null);
+    }
+  }
+
+  async function agregarGasto(categoria: GastoCategoria) {
+    setErrorGuardado(null);
+    try {
+      const res = await fetch('/api/gastos-generales', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ obra_id: obraId, categoria, descripcion: 'Nuevo gasto', modalidad: 'unico', monto: 0 }),
+      });
+      const json: unknown = await res.json();
+      if (!res.ok) throw new Error((json as { error: string }).error ?? 'Error al crear el gasto');
+      onRefrescar();
+    } catch (err) {
+      setErrorGuardado(err instanceof Error ? err.message : 'Error al crear el gasto');
+    }
+  }
+
+  async function eliminarGasto(id: string, descripcion: string) {
+    if (!window.confirm(`¿Eliminar el gasto "${descripcion}"? Esta acción no se puede deshacer.`)) return;
+    setErrorGuardado(null);
+    try {
+      const res = await fetch(`/api/gastos-generales/${id}`, { method: 'DELETE' });
+      const json: unknown = await res.json();
+      if (!res.ok) throw new Error((json as { error: string }).error ?? 'Error al eliminar el gasto');
+      onRefrescar();
+    } catch (err) {
+      setErrorGuardado(err instanceof Error ? err.message : 'Error al eliminar el gasto');
+    }
+  }
+
+  const lista = datos.gastos_generales.lista;
+
+  return (
+    <div className="flex flex-col gap-6">
+      {/* Plazo de la obra */}
+      <div className="overflow-hidden" style={GLASS_CARD}>
+        <div className="px-6 py-4 flex items-center gap-3 flex-wrap">
+          <label className="text-sm font-medium" style={{ color: '#1A1A2E' }}>Plazo de la obra (meses)</label>
+          <input
+            type="number"
+            min="0"
+            step="1"
+            value={plazoBorrador}
+            onChange={(e) => setPlazoBorrador(e.target.value)}
+            onBlur={confirmarPlazo}
+            onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+            className="w-20 text-right font-mono tabular-nums border rounded-[8px] px-2 py-1 focus:outline-none"
+            style={INPUT_STYLE}
+          />
+          {guardandoPlazo && <span className="text-xs" style={{ color: '#9CA3AF' }}>guardando…</span>}
+        </div>
+        <p className="px-6 pb-4 text-xs" style={{ color: '#9CA3AF' }}>
+          Valor por defecto para los gastos mensuales — cada gasto puede tener su propia cantidad de meses.
+        </p>
+        {errorPlazo && <p className="px-6 pb-4 text-xs" style={{ color: '#EF4444' }}>{errorPlazo}</p>}
+      </div>
+
+      {/* Categorías */}
+      {CATEGORIAS.map((cat) => {
+        const gastosCategoria = lista.filter((g) => g.categoria === cat.id);
+        return (
+          <div key={cat.id} className="overflow-hidden" style={GLASS_CARD}>
+            <div className="px-6 py-4" style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+              <span className="text-base font-semibold" style={{ color: '#1A1A2E' }}>{cat.nombre}</span>
+            </div>
+
+            {gastosCategoria.length === 0 ? (
+              <p className="px-6 py-3 text-sm" style={{ color: '#9CA3AF' }}>Sin gastos en esta categoría.</p>
+            ) : (
+              gastosCategoria.map((gasto) => (
+                <GastoGeneralRow
+                  key={gasto.id}
+                  gasto={gasto}
+                  guardando={guardandoId === gasto.id}
+                  onGuardar={(cambios) => guardarGasto(gasto.id, cambios)}
+                  onEliminar={() => eliminarGasto(gasto.id, gasto.descripcion)}
+                />
+              ))
+            )}
+
+            <div className="px-6 py-4">
+              <button
+                onClick={() => agregarGasto(cat.id)}
+                className="text-sm font-semibold transition-opacity hover:opacity-80 px-5 py-2"
+                style={{ background: '#C8E64C', color: '#2A3300', borderRadius: '9999px' }}
+              >
+                + Agregar gasto
+              </button>
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Total: siempre calculado por el sistema, nunca cargado a mano */}
+      <div className="overflow-hidden" style={GLASS_CARD}>
+        <div className="px-6 py-4 flex justify-between items-center">
+          <span className="text-sm font-medium" style={{ color: '#1A1A2E' }}>Total gastos generales</span>
+          <span className="text-sm font-semibold font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
+            {formatPrecio(datos.gastos_generales.total)}{' '}
+            <span className="font-normal" style={{ color: '#6B7080' }}>
+              ({formatNum(datos.gastos_generales.porcentaje_derivado)}% del costo-costo)
+            </span>
+          </span>
+        </div>
+      </div>
+
+      {errorGuardado && <p className="text-xs" style={{ color: '#EF4444' }}>{errorGuardado}</p>}
+    </div>
+  );
+}
+
+/* ─── CascadaLinea ─────────────────────────────────────────────────────────── */
+
+function CascadaLinea({ label, valor, destacado }: { label: string; valor: number; destacado?: boolean }) {
+  return (
+    <div
+      className="px-6 py-3 flex justify-between items-center"
+      style={{
+        borderBottom: '1px solid rgba(0,0,0,0.04)',
+        background: destacado ? 'rgba(0,0,0,0.02)' : undefined,
+      }}
+    >
+      <span className="text-sm" style={{ color: destacado ? '#1A1A2E' : '#6B7080', fontWeight: destacado ? 600 : 400 }}>
+        {label}
+      </span>
+      <span className="text-sm font-mono tabular-nums" style={{ color: '#1A1A2E', fontWeight: destacado ? 700 : 500 }}>
+        {formatPrecio(valor)}
+      </span>
+    </div>
+  );
+}
+
+/* ─── TabPaqueteEmpresario ─────────────────────────────────────────────────── */
+
+function TabPaqueteEmpresario({
+  cierre,
+  obraId,
+  onRefrescar,
+}: {
+  cierre: PresupuestoResponse['cierre'];
+  obraId: string;
+  onRefrescar: () => void;
+}) {
+  const [campos, setCampos] = useState({
+    costo_financiero: String(cierre.costo_financiero_pct),
+    beneficio: String(cierre.beneficio_pct),
+    iva: String(cierre.impuestos.iva_pct),
+    rentas: String(cierre.impuestos.rentas_pct),
+  });
+  const [guardandoCampo, setGuardandoCampo] = useState<CampoPaquete | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCampos({
+      costo_financiero: String(cierre.costo_financiero_pct),
+      beneficio: String(cierre.beneficio_pct),
+      iva: String(cierre.impuestos.iva_pct),
+      rentas: String(cierre.impuestos.rentas_pct),
+    });
+  }, [cierre.costo_financiero_pct, cierre.beneficio_pct, cierre.impuestos.iva_pct, cierre.impuestos.rentas_pct]);
+
+  const valorActual: Record<CampoPaquete, number> = {
+    costo_financiero: cierre.costo_financiero_pct,
+    beneficio: cierre.beneficio_pct,
+    iva: cierre.impuestos.iva_pct,
+    rentas: cierre.impuestos.rentas_pct,
+  };
+
+  async function guardar(campo: CampoPaquete) {
+    const num = Number(campos[campo]);
+    if (Number.isNaN(num) || num < 0 || num === valorActual[campo]) {
+      setCampos((prev) => ({ ...prev, [campo]: String(valorActual[campo]) }));
+      return;
+    }
+    setGuardandoCampo(campo);
+    setError(null);
+    try {
+      const res = await fetch(`/api/paquete-empresario/${obraId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [campo]: num }),
+      });
+      const json: unknown = await res.json();
+      if (!res.ok) throw new Error((json as { error: string }).error ?? 'Error al guardar');
+      onRefrescar();
+    } catch (err) {
+      setCampos((prev) => ({ ...prev, [campo]: String(valorActual[campo]) }));
+      setError(err instanceof Error ? err.message : 'Error al guardar');
+    } finally {
+      setGuardandoCampo(null);
+    }
+  }
+
+  function campoInput(campo: CampoPaquete, label: string) {
+    return (
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#6B7080' }}>{label}</label>
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={campos[campo]}
+            onChange={(e) => setCampos((prev) => ({ ...prev, [campo]: e.target.value }))}
+            onBlur={() => guardar(campo)}
+            onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+            className="w-24 text-right font-mono tabular-nums border rounded-[8px] px-3 py-2 focus:outline-none"
+            style={INPUT_STYLE}
+          />
+          <span className="text-sm" style={{ color: '#6B7080' }}>%</span>
+          {guardandoCampo === campo && <span className="text-xs" style={{ color: '#9CA3AF' }}>guardando…</span>}
+        </div>
+      </div>
+    );
+  }
+
+  const coef = colorCoeficiente(cierre.coeficiente);
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="overflow-hidden p-6" style={GLASS_CARD}>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
+          {campoInput('costo_financiero', 'Costo Financiero')}
+          {campoInput('beneficio', 'Beneficio')}
+          {campoInput('iva', 'IVA')}
+          {campoInput('rentas', 'Rentas')}
+        </div>
+        {error && <p className="text-xs mt-4" style={{ color: '#EF4444' }}>{error}</p>}
+      </div>
+
+      <div className="overflow-hidden" style={GLASS_CARD}>
+        <CascadaLinea label="Costo-Costo" valor={cierre.costo_costo} />
+        <CascadaLinea label="+ Gastos Generales" valor={cierre.gastos_generales} />
+        <CascadaLinea label="Subtotal 1" valor={cierre.subtotal_1} destacado />
+        <CascadaLinea label={`+ Costo Financiero (${cierre.costo_financiero_pct}%)`} valor={cierre.costo_financiero_monto} />
+        <CascadaLinea label="Subtotal 2" valor={cierre.subtotal_2} destacado />
+        <CascadaLinea label={`+ Beneficio (${cierre.beneficio_pct}%)`} valor={cierre.beneficio_monto} />
+        <CascadaLinea label="Subtotal 3" valor={cierre.subtotal_3} destacado />
+        <CascadaLinea
+          label={`+ Impuestos (IVA ${cierre.impuestos.iva_pct}% + Rentas ${cierre.impuestos.rentas_pct}%)`}
+          valor={cierre.impuestos.monto}
+        />
+
+        <div
+          className="px-6 py-5 flex justify-between items-center"
+          style={{ borderTop: '2px solid rgba(0,0,0,0.10)', background: 'rgba(200,230,76,0.15)' }}
+        >
+          <span style={{ fontSize: '22px', fontWeight: 700, color: '#1A1A2E' }}>Precio de la Obra</span>
+          <span className="font-mono tabular-nums" style={{ fontSize: '22px', fontWeight: 700, color: '#1A1A2E' }}>
+            {formatPrecio(cierre.precio_final)}
+          </span>
+        </div>
+
+        <div className="px-6 py-5 flex justify-between items-center" style={{ background: coef.bg }}>
+          <span style={{ fontSize: '18px', fontWeight: 700, color: '#1A1A2E' }}>Coeficiente de impactación</span>
+          <span className="font-mono tabular-nums" style={{ fontSize: '22px', fontWeight: 700, color: coef.color }}>
+            {formatCoeficiente(cierre.coeficiente)}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -283,7 +736,7 @@ function TabPlaceholder({ titulo }: { titulo: string }) {
 export default function PresupuestoPage() {
   const params = useParams();
   const obraId = params.id as string;
-  const { lista: datos, cargando, error } = usePresupuesto(obraId);
+  const { lista: datos, cargando, error, refrescar } = usePresupuesto(obraId);
 
   const [tab, setTab] = useState<TabId>('costo-costo');
 
@@ -358,8 +811,12 @@ export default function PresupuestoPage() {
               </div>
 
               {tab === 'costo-costo' && <TabCostoCosto datos={datos} obraId={obraId} />}
-              {tab === 'gastos-generales' && <TabPlaceholder titulo="Gastos Generales" />}
-              {tab === 'paquete-empresario' && <TabPlaceholder titulo="Paquete Empresario" />}
+              {tab === 'gastos-generales' && (
+                <TabGastosGenerales datos={datos} obraId={obraId} onRefrescar={refrescar} />
+              )}
+              {tab === 'paquete-empresario' && (
+                <TabPaqueteEmpresario cierre={datos.cierre} obraId={obraId} onRefrescar={refrescar} />
+              )}
             </div>
 
             <ResumenCascada cierre={datos.cierre} />
