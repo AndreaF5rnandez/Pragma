@@ -3,41 +3,12 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { calcularTotalesPresupuesto } from '@/lib/calculos';
-import type { GastoGeneral, Obra, PresupuestoLinea } from '@/types';
+import { calcularCierrePresupuesto, calcularTotalGasto } from '@/lib/calculos';
+import type { GastoGeneral, PaqueteEmpresario, PresupuestoResponse } from '@/types';
 
 /* ─── Tipos locales ────────────────────────────────────────────────────────── */
 
-type Totales = {
-  subtotal: number;
-  gastos_generales: number;
-  costo_financiero: number;
-  beneficio: number;
-  impuestos: number;
-  total: number;
-  coeficiente: number;
-};
-
-type Coeficientes = {
-  gastos_generales: number;
-  costo_financiero: number;
-  beneficio: number;
-  impuestos: number;
-};
-
-type PresupuestoResponse = {
-  obra: Obra;
-  lineas: PresupuestoLinea[];
-  totales: Totales;
-  coeficientes: Coeficientes;
-};
-
-type RubroAgrupado = {
-  rubro_id: string;
-  rubro_nombre: string;
-  lineas: PresupuestoLinea[];
-  subtotal: number;
-};
+type Paquete = Pick<PaqueteEmpresario, 'costo_financiero' | 'beneficio' | 'iva' | 'rentas'>;
 
 /* ─── Helpers ──────────────────────────────────────────────────────────────── */
 
@@ -51,24 +22,6 @@ function formatNum(v: number) {
 
 function formatCoeficiente(v: number) {
   return new Intl.NumberFormat('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
-}
-
-function agruparPorRubro(lineas: PresupuestoLinea[]): RubroAgrupado[] {
-  const map = new Map<string, RubroAgrupado>();
-  for (const linea of lineas) {
-    if (!map.has(linea.rubro_id)) {
-      map.set(linea.rubro_id, {
-        rubro_id: linea.rubro_id,
-        rubro_nombre: linea.rubro_nombre,
-        lineas: [],
-        subtotal: 0,
-      });
-    }
-    const rubro = map.get(linea.rubro_id)!;
-    rubro.lineas.push(linea);
-    rubro.subtotal += linea.subtotal;
-  }
-  return Array.from(map.values());
 }
 
 const MESH_GRADIENT = [
@@ -279,15 +232,16 @@ export default function PresupuestoPage() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Coeficientes editables: se seedean desde la obra al cargar y a partir de
-  // ahí viven en el cliente, para recalcular el total al instante sin refetch.
-  const [coeficientes, setCoeficientes] = useState<Coeficientes | null>(null);
-  const [guardandoCampo, setGuardandoCampo] = useState<keyof Coeficientes | null>(null);
+  // Porcentajes del paquete empresario: se seedean desde la respuesta del
+  // endpoint principal y a partir de ahí viven en el cliente, para recalcular
+  // el cierre al instante sin refetch.
+  const [paquete, setPaquete] = useState<Paquete | null>(null);
+  const [guardandoCampo, setGuardandoCampo] = useState<keyof Paquete | null>(null);
   const [errorGuardado, setErrorGuardado] = useState<string | null>(null);
 
-  // Gastos generales detallados: lista independiente, propia de la obra.
+  // Gastos generales detallados: también vienen del endpoint principal, pero
+  // se editan en el cliente contra /api/gastos-generales/[id].
   const [gastosGenerales, setGastosGenerales] = useState<GastoGeneral[] | null>(null);
-  const [gastosCargando, setGastosCargando] = useState(true);
   const [gastosError, setGastosError] = useState<string | null>(null);
   const [guardandoGastoId, setGuardandoGastoId] = useState<string | null>(null);
 
@@ -304,7 +258,13 @@ export default function PresupuestoPage() {
         const respuesta = json as PresupuestoResponse;
         if (activo) {
           setDatos(respuesta);
-          setCoeficientes(respuesta.coeficientes);
+          setPaquete({
+            costo_financiero: respuesta.cierre.costo_financiero_pct,
+            beneficio: respuesta.cierre.beneficio_pct,
+            iva: respuesta.cierre.impuestos.iva_pct,
+            rentas: respuesta.cierre.impuestos.rentas_pct,
+          });
+          setGastosGenerales(respuesta.gastos_generales.lista);
         }
       })
       .catch((err: Error) => { if (activo) setError(err.message); })
@@ -313,81 +273,50 @@ export default function PresupuestoPage() {
     return () => { activo = false; };
   }, [obraId]);
 
-  useEffect(() => {
-    let activo = true;
-    setGastosCargando(true);
-    setGastosError(null);
+  // Total de ítems, para distinguir "obra sin mediciones" de "obra con datos".
+  const totalItems = useMemo(
+    () => datos?.costo_directo.rubros.reduce((sum, r) => sum + r.items.length, 0) ?? 0,
+    [datos],
+  );
 
-    fetch(`/api/gastos-generales?obra_id=${obraId}`)
-      .then(async (res) => {
-        const json: unknown = await res.json();
-        if (!res.ok)
-          throw new Error((json as { error: string }).error ?? 'Error al cargar gastos generales');
-        if (activo) setGastosGenerales(json as GastoGeneral[]);
-      })
-      .catch((err: Error) => { if (activo) setGastosError(err.message); })
-      .finally(() => { if (activo) setGastosCargando(false); });
-
-    return () => { activo = false; };
-  }, [obraId]);
-
-  // Totales recalculados en el cliente a partir de las líneas ya cargadas y
-  // los coeficientes actuales (editados o no), sin volver a pedirle nada al servidor.
-  const totales = useMemo(() => {
-    if (!datos || !coeficientes) return null;
-    return calcularTotalesPresupuesto(
-      datos.lineas,
-      coeficientes.gastos_generales,
-      coeficientes.costo_financiero,
-      coeficientes.beneficio,
-      coeficientes.impuestos,
-    );
-  }, [datos, coeficientes]);
-
-  const totalGastosDetallado = useMemo(
-    () => (gastosGenerales ?? []).reduce((sum, g) => sum + g.monto, 0),
+  // Total de gastos generales recalculado en el cliente (mensual = monto × meses).
+  const totalGastosGenerales = useMemo(
+    () => (gastosGenerales ?? []).reduce((sum, g) => sum + calcularTotalGasto(g), 0),
     [gastosGenerales],
   );
 
-  const pctGastosDetalladoSobreDirecto = useMemo(() => {
-    if (!totales || totales.subtotal <= 0) return 0;
-    return (totalGastosDetallado / totales.subtotal) * 100;
-  }, [totalGastosDetallado, totales]);
+  const pctGastosSobreDirecto = useMemo(() => {
+    if (!datos || datos.costo_directo.costo_costo <= 0) return 0;
+    return (totalGastosGenerales / datos.costo_directo.costo_costo) * 100;
+  }, [totalGastosGenerales, datos]);
 
-  async function guardarCoeficiente(campo: keyof Coeficientes, nuevoValor: number) {
-    if (!datos || !coeficientes) return;
-    const anterior = coeficientes[campo];
+  // Cierre recalculado en el cliente a partir del costo directo ya cargado,
+  // los gastos generales (editables) y el paquete empresario (editable).
+  const cierre = useMemo(() => {
+    if (!datos || !paquete) return null;
+    return calcularCierrePresupuesto(datos.costo_directo.costo_costo, totalGastosGenerales, paquete);
+  }, [datos, paquete, totalGastosGenerales]);
 
-    // Optimista: se actualiza (y recalcula el total) antes de que vuelva la respuesta.
-    setCoeficientes((prev) => (prev ? { ...prev, [campo]: nuevoValor } : prev));
+  async function guardarCoeficiente(campo: keyof Paquete, nuevoValor: number) {
+    if (!paquete) return;
+    const anterior = paquete[campo];
+
+    // Optimista: se actualiza (y recalcula el cierre) antes de que vuelva la respuesta.
+    setPaquete((prev) => (prev ? { ...prev, [campo]: nuevoValor } : prev));
     setGuardandoCampo(campo);
     setErrorGuardado(null);
 
-    const campoDb: Record<keyof Coeficientes, string> = {
-      gastos_generales: 'gastos_generales_pct',
-      costo_financiero: 'costo_financiero_pct',
-      beneficio: 'beneficio_pct',
-      impuestos: 'impuestos_pct',
-    };
-
     try {
-      const res = await fetch(`/api/obras/${obraId}`, {
+      const res = await fetch(`/api/paquete-empresario/${obraId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nombre: datos.obra.nombre,
-          cliente: datos.obra.cliente,
-          direccion: datos.obra.direccion,
-          fecha_inicio: datos.obra.fecha_inicio,
-          estado: datos.obra.estado,
-          [campoDb[campo]]: nuevoValor,
-        }),
+        body: JSON.stringify({ [campo]: nuevoValor }),
       });
       const json: unknown = await res.json();
       if (!res.ok) throw new Error((json as { error: string }).error ?? 'Error al guardar');
     } catch (err) {
       // Revertir si falló el guardado
-      setCoeficientes((prev) => (prev ? { ...prev, [campo]: anterior } : prev));
+      setPaquete((prev) => (prev ? { ...prev, [campo]: anterior } : prev));
       setErrorGuardado(err instanceof Error ? err.message : 'Error al guardar');
     } finally {
       setGuardandoCampo(null);
@@ -429,7 +358,13 @@ export default function PresupuestoPage() {
       const res = await fetch('/api/gastos-generales', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ obra_id: obraId, descripcion: 'Nuevo gasto', monto: 0 }),
+        body: JSON.stringify({
+          obra_id: obraId,
+          categoria: 'GGDOO',
+          descripcion: 'Nuevo gasto',
+          modalidad: 'unico',
+          monto: 0,
+        }),
       });
       const json: unknown = await res.json();
       if (!res.ok) throw new Error((json as { error: string }).error ?? 'Error al crear el gasto');
@@ -504,7 +439,7 @@ export default function PresupuestoPage() {
           <div className="flex items-center justify-center h-64">
             <p className="text-sm" style={{ color: '#EF4444' }}>{error}</p>
           </div>
-        ) : datos && datos.lineas.length === 0 ? (
+        ) : datos && totalItems === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 gap-4">
             <p className="text-sm" style={{ color: '#6B7080' }}>
               Esta obra no tiene mediciones cargadas todavía.
@@ -517,7 +452,7 @@ export default function PresupuestoPage() {
               Ir al Cómputo
             </Link>
           </div>
-        ) : datos && coeficientes && totales ? (
+        ) : datos && paquete && cierre ? (
           <div className="w-full max-w-none">
             {/* ── SECCIÓN 1: Tabla de presupuesto ── */}
             <div className="overflow-hidden mb-6" style={GLASS_CARD}>
@@ -542,7 +477,7 @@ export default function PresupuestoPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {agruparPorRubro(datos.lineas).map((rubro) => (
+                  {datos.costo_directo.rubros.map((rubro) => (
                     <Fragment key={rubro.rubro_id}>
                       {/* Cabecera del rubro */}
                       <tr style={{ background: 'rgba(200,230,76,0.08)' }}>
@@ -562,26 +497,26 @@ export default function PresupuestoPage() {
                       </tr>
 
                       {/* Ítems del rubro */}
-                      {rubro.lineas.map((linea) => (
+                      {rubro.items.map((item) => (
                         <tr
-                          key={linea.item_id}
+                          key={item.item_id}
                           className="hover:bg-black/[0.02] transition-colors"
                           style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}
                         >
                           <td className="px-4 py-2.5 pl-8" style={{ color: '#1A1A2E' }}>
-                            {linea.receta_nombre}
+                            {item.receta_nombre}
                           </td>
                           <td className="px-3 py-2.5 text-center" style={{ color: '#6B7080' }}>
-                            {linea.unidad}
+                            {item.unidad}
                           </td>
                           <td className="px-3 py-2.5 text-right font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
-                            {formatNum(linea.cantidad_total)}
+                            {formatNum(item.cantidad_total)}
                           </td>
                           <td className="px-3 py-2.5 text-right font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
-                            {formatPrecio(linea.precio_unitario)}
+                            {formatPrecio(item.precio_unitario)}
                           </td>
                           <td className="px-4 py-2.5 text-right font-mono font-semibold tabular-nums" style={{ color: '#1A1A2E' }}>
-                            {formatPrecio(linea.subtotal)}
+                            {formatPrecio(item.subtotal)}
                           </td>
                         </tr>
                       ))}
@@ -594,7 +529,7 @@ export default function PresupuestoPage() {
                       Total costo directo
                     </td>
                     <td className="px-4 py-3 text-right font-mono tabular-nums" style={{ fontWeight: 700, color: '#1A1A2E' }}>
-                      {formatPrecio(totales.subtotal)}
+                      {formatPrecio(datos.costo_directo.costo_costo)}
                     </td>
                   </tr>
                 </tfoot>
@@ -609,29 +544,25 @@ export default function PresupuestoPage() {
                 </span>
               </div>
 
-              {gastosCargando ? (
-                <p className="px-6 py-3 text-sm" style={{ color: '#6B7080' }}>Cargando…</p>
-              ) : (
-                (gastosGenerales ?? []).map((gasto) => (
-                  <GastoGeneralRow
-                    key={gasto.id}
-                    gasto={gasto}
-                    guardando={guardandoGastoId === gasto.id}
-                    onGuardarDescripcion={(valor) => guardarGastoGeneral(gasto.id, 'descripcion', valor)}
-                    onGuardarMonto={(valor) => guardarGastoGeneral(gasto.id, 'monto', valor)}
-                    onEliminar={() => eliminarGastoGeneral(gasto.id)}
-                  />
-                ))
-              )}
+              {(gastosGenerales ?? []).map((gasto) => (
+                <GastoGeneralRow
+                  key={gasto.id}
+                  gasto={gasto}
+                  guardando={guardandoGastoId === gasto.id}
+                  onGuardarDescripcion={(valor) => guardarGastoGeneral(gasto.id, 'descripcion', valor)}
+                  onGuardarMonto={(valor) => guardarGastoGeneral(gasto.id, 'monto', valor)}
+                  onEliminar={() => eliminarGastoGeneral(gasto.id)}
+                />
+              ))}
 
               <div className="px-6 py-3 flex justify-between items-center" style={{ background: 'rgba(200,230,76,0.10)' }}>
                 <span className="text-sm font-medium" style={{ color: '#1A1A2E' }}>
                   Total gastos generales
                 </span>
                 <span className="text-sm font-semibold font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
-                  {formatPrecio(totalGastosDetallado)}{' '}
+                  {formatPrecio(totalGastosGenerales)}{' '}
                   <span className="font-normal" style={{ color: '#6B7080' }}>
-                    ({formatNum(pctGastosDetalladoSobreDirecto)}% del costo directo)
+                    ({formatNum(pctGastosSobreDirecto)}% del costo directo)
                   </span>
                 </span>
               </div>
@@ -656,37 +587,44 @@ export default function PresupuestoPage() {
               <div className="px-6 py-3 flex justify-between items-center" style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
                 <span className="text-sm" style={{ color: '#6B7080' }}>Subtotal de obra (costo directo)</span>
                 <span className="text-sm font-medium font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
-                  {formatPrecio(totales.subtotal)}
+                  {formatPrecio(datos.costo_directo.costo_costo)}
+                </span>
+              </div>
+
+              <div className="px-6 py-3 flex justify-between items-center" style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                <span className="text-sm" style={{ color: '#6B7080' }}>Gastos generales (detallado arriba)</span>
+                <span className="text-sm font-medium font-mono tabular-nums" style={{ color: '#1A1A2E' }}>
+                  {formatPrecio(cierre.gastos_generales)}
                 </span>
               </div>
 
               <EditablePct
-                label="Gastos generales"
-                valor={coeficientes.gastos_generales}
-                monto={totales.gastos_generales}
-                guardando={guardandoCampo === 'gastos_generales'}
-                onGuardar={(v) => guardarCoeficiente('gastos_generales', v)}
-              />
-              <EditablePct
                 label="Costo financiero"
-                valor={coeficientes.costo_financiero}
-                monto={totales.costo_financiero}
+                valor={paquete.costo_financiero}
+                monto={cierre.costo_financiero_monto}
                 guardando={guardandoCampo === 'costo_financiero'}
                 onGuardar={(v) => guardarCoeficiente('costo_financiero', v)}
               />
               <EditablePct
                 label="Beneficio"
-                valor={coeficientes.beneficio}
-                monto={totales.beneficio}
+                valor={paquete.beneficio}
+                monto={cierre.beneficio_monto}
                 guardando={guardandoCampo === 'beneficio'}
                 onGuardar={(v) => guardarCoeficiente('beneficio', v)}
               />
               <EditablePct
-                label="Impuestos"
-                valor={coeficientes.impuestos}
-                monto={totales.impuestos}
-                guardando={guardandoCampo === 'impuestos'}
-                onGuardar={(v) => guardarCoeficiente('impuestos', v)}
+                label="IVA"
+                valor={paquete.iva}
+                monto={cierre.subtotal_3 * (paquete.iva / 100)}
+                guardando={guardandoCampo === 'iva'}
+                onGuardar={(v) => guardarCoeficiente('iva', v)}
+              />
+              <EditablePct
+                label="Rentas"
+                valor={paquete.rentas}
+                monto={cierre.subtotal_3 * (paquete.rentas / 100)}
+                guardando={guardandoCampo === 'rentas'}
+                onGuardar={(v) => guardarCoeficiente('rentas', v)}
               />
 
               <div
@@ -695,14 +633,14 @@ export default function PresupuestoPage() {
               >
                 <span style={{ fontSize: '28px', fontWeight: 700, color: '#1A1A2E' }}>Precio final</span>
                 <span className="font-mono tabular-nums" style={{ fontSize: '28px', fontWeight: 700, color: '#1A1A2E' }}>
-                  {formatPrecio(totales.total)}
+                  {formatPrecio(cierre.precio_final)}
                 </span>
               </div>
 
               <div className="px-6 py-5 flex justify-between items-center">
                 <span style={{ fontSize: '28px', fontWeight: 700, color: '#1A1A2E' }}>Coeficiente de impactación</span>
                 <span className="font-mono tabular-nums" style={{ fontSize: '28px', fontWeight: 700, color: '#1A1A2E' }}>
-                  {formatCoeficiente(totales.coeficiente)}
+                  {formatCoeficiente(cierre.coeficiente)}
                 </span>
               </div>
             </div>
