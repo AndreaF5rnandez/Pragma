@@ -166,35 +166,34 @@ function EditablePct({
 }
 
 /* ─── GastoGeneralRow ──────────────────────────────────────────────────────── */
-/* Línea de gasto general en formato de dos columnas: concepto (input de texto
+/* Línea de gasto general en formato de dos columnas: descripción (input de texto
  * siempre editable, autosave al perder foco) a la izquierda y monto (click
- * para editar, mismo patrón que EditablePct) a la derecha. Las líneas
- * predefinidas no muestran botón de eliminar. */
+ * para editar, mismo patrón que EditablePct) a la derecha. */
 
 function GastoGeneralRow({
   gasto,
   guardando,
-  onGuardarConcepto,
+  onGuardarDescripcion,
   onGuardarMonto,
   onEliminar,
 }: {
   gasto: GastoGeneral;
   guardando: boolean;
-  onGuardarConcepto: (valor: string) => void;
+  onGuardarDescripcion: (valor: string) => void;
   onGuardarMonto: (valor: number) => void;
   onEliminar: () => void;
 }) {
-  const [concepto, setConcepto] = useState(gasto.concepto);
+  const [descripcion, setDescripcion] = useState(gasto.descripcion);
   const [editandoMonto, setEditandoMonto] = useState(false);
   const [borradorMonto, setBorradorMonto] = useState(String(gasto.monto));
 
-  useEffect(() => setConcepto(gasto.concepto), [gasto.concepto]);
+  useEffect(() => setDescripcion(gasto.descripcion), [gasto.descripcion]);
 
-  function confirmarConcepto() {
-    const valor = concepto.trim();
-    if (!valor) { setConcepto(gasto.concepto); return; }
-    if (valor === gasto.concepto) return;
-    onGuardarConcepto(valor);
+  function confirmarDescripcion() {
+    const valor = descripcion.trim();
+    if (!valor) { setDescripcion(gasto.descripcion); return; }
+    if (valor === gasto.descripcion) return;
+    onGuardarDescripcion(valor);
   }
 
   function entrarEdicionMonto() {
@@ -213,9 +212,9 @@ function GastoGeneralRow({
     <div className="px-6 py-2.5 flex items-center gap-3" style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
       <input
         type="text"
-        value={concepto}
-        onChange={(e) => setConcepto(e.target.value)}
-        onBlur={confirmarConcepto}
+        value={descripcion}
+        onChange={(e) => setDescripcion(e.target.value)}
+        onBlur={confirmarDescripcion}
         onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
         className="flex-1 min-w-0 text-sm bg-transparent border-b border-transparent hover:border-black/10 focus:outline-none focus:border-b-[#C8E64C] transition-colors"
         style={{ color: '#1A1A2E' }}
@@ -255,16 +254,14 @@ function GastoGeneralRow({
 
       {guardando && <span className="text-xs shrink-0" style={{ color: '#9CA3AF' }}>…</span>}
 
-      {!gasto.es_predefinido && (
-        <button
-          onClick={onEliminar}
-          className="text-xs shrink-0 hover:opacity-70 transition-opacity"
-          style={{ color: '#EF4444' }}
-          title="Eliminar gasto"
-        >
-          ✕
-        </button>
-      )}
+      <button
+        onClick={onEliminar}
+        className="text-xs shrink-0 hover:opacity-70 transition-opacity"
+        style={{ color: '#EF4444' }}
+        title="Eliminar gasto"
+      >
+        ✕
+      </button>
     </div>
   );
 }
@@ -397,7 +394,7 @@ export default function PresupuestoPage() {
     }
   }
 
-  async function guardarGastoGeneral(id: string, campo: 'concepto' | 'monto', valor: string | number) {
+  async function guardarGastoGeneral(id: string, campo: 'descripcion' | 'monto', valor: string | number) {
     if (!gastosGenerales) return;
     const anterior = gastosGenerales.find((g) => g.id === id);
     if (!anterior) return;
@@ -432,7 +429,7 @@ export default function PresupuestoPage() {
       const res = await fetch('/api/gastos-generales', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ obra_id: obraId, concepto: 'Nuevo gasto', monto: 0 }),
+        body: JSON.stringify({ obra_id: obraId, descripcion: 'Nuevo gasto', monto: 0 }),
       });
       const json: unknown = await res.json();
       if (!res.ok) throw new Error((json as { error: string }).error ?? 'Error al crear el gasto');
@@ -620,7 +617,7 @@ export default function PresupuestoPage() {
                     key={gasto.id}
                     gasto={gasto}
                     guardando={guardandoGastoId === gasto.id}
-                    onGuardarConcepto={(valor) => guardarGastoGeneral(gasto.id, 'concepto', valor)}
+                    onGuardarDescripcion={(valor) => guardarGastoGeneral(gasto.id, 'descripcion', valor)}
                     onGuardarMonto={(valor) => guardarGastoGeneral(gasto.id, 'monto', valor)}
                     onEliminar={() => eliminarGastoGeneral(gasto.id)}
                   />
