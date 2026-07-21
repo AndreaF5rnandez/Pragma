@@ -207,3 +207,36 @@ export interface PresupuestoResponse {
   gastos_generales: GastosGeneralesResumen;
   cierre: CierrePresupuesto;
 }
+
+export interface Planificacion {
+  id: string;
+  item_id: string;
+  mes: number;
+  pct_plan: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PlanificacionItem {
+  item_id: string;
+  descripcion: string;
+  unidad_medida: string;
+  cantidad_total: number;
+  subtotal_costo_costo: number;
+  incidencia_pct: number;
+  planificacion: Pick<Planificacion, 'mes' | 'pct_plan'>[];
+}
+
+export interface PlanificacionRubro {
+  rubro_id: string;
+  rubro_nombre: string;
+  items: PlanificacionItem[];
+}
+
+export interface PlanificacionResponse {
+  obra_id: string;
+  plazo_meses: number | null;
+  fecha_inicio: string;
+  total_costo_costo: number;
+  rubros: PlanificacionRubro[];
+}
