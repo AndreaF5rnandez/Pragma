@@ -32,7 +32,7 @@ export async function GET(
     // Verificar que la obra existe
     const { data: obra, error: obraError } = await supabase
       .from("obras")
-      .select("id, plazo_meses, fecha_inicio")
+      .select("id, nombre, plazo_meses, fecha_inicio")
       .eq("id", params.obraId)
       .single();
 
@@ -120,6 +120,7 @@ export async function GET(
 
     const response: PlanificacionResponse = {
       obra_id: params.obraId,
+      obra_nombre: obra.nombre,
       plazo_meses: obra.plazo_meses,
       fecha_inicio: obra.fecha_inicio,
       total_costo_costo: totalCostoCosto,

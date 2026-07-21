@@ -235,6 +235,7 @@ export interface PlanificacionRubro {
 
 export interface PlanificacionResponse {
   obra_id: string;
+  obra_nombre: string;
   plazo_meses: number | null;
   fecha_inicio: string;
   total_costo_costo: number;
