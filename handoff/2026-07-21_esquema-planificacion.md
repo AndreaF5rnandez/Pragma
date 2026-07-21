@@ -124,10 +124,71 @@ Ya soporta:
 
 No se realizaron modificaciones en este endpoint.
 
+## Cuarta tarea: Cáscara del frontend (Hook + Tabs + Página)
+
+**Componentes creados:**
+1. **Hook `hooks/usePlanificacion.ts`** (nuevo)
+2. **Pestaña "Planificación"** agregada a `/app/obras/[id]/medicion/page.tsx` y `/app/obras/[id]/presupuesto/page.tsx`
+3. **Página `/app/obras/[id]/planificacion/page.tsx`** (nueva, con placeholder)
+
+### Hook `usePlanificacion(obraId)`
+
+**Interfaz:**
+```typescript
+function usePlanificacion(obraId: string): {
+  datos: PlanificacionResponse | null;
+  cargando: boolean;
+  error: string | null;
+  guardarCelda(item_id: string, mes: number, pct_plan: number | null): Promise<void>;
+  guardarConfiguracion(plazo_meses: number | null, fecha_inicio: string): Promise<void>;
+}
+```
+
+**Estructura:**
+- Sigue patrón de hooks existentes (`useRubros`, `useItems`, etc.)
+- `datos`: respuesta completa de `GET /api/planificacion/[obraId]` (type: `PlanificacionResponse`)
+- `cargando`: boolean durante fetch inicial
+- `error`: string | null, mensaje de error si falla
+- `guardarCelda(item_id, mes, pct_plan)`: POST a `/api/planificacion`, recarga datos automáticamente
+- `guardarConfiguracion(plazo_meses, fecha_inicio)`: PUT a `/api/obras/[id]`, recarga datos automáticamente
+- Sin `any`, tipos explícitos
+
+### Pestaña "Planificación"
+
+**Ubicación:** Agregado a ambas páginas
+- `/app/obras/[id]/medicion/page.tsx` — tab inactivo (color `#6B7080`, font-medium)
+- `/app/obras/[id]/presupuesto/page.tsx` — tab inactivo (color `#6B7080`, font-medium)
+- `/app/obras/[id]/planificacion/page.tsx` — tab activo (color `#1A1A2E`, borderColor `#1A1A2E`, font-semibold)
+
+**Estilo:** Idéntico a tabs existentes, respeta paleta pragma (colores `#1A1A2E`, `#6B7080`), transición de colores
+
+### Página `/app/obras/[id]/planificacion/page.tsx`
+
+**Estado:**
+- Usa hook `usePlanificacion(obraId)`
+- Renderiza header con nombre de obra y tabs (Planificación activo)
+- Estados:
+  - **Cargando:** texto "Cargando planificación..." con color pragma-textoClaro
+  - **Error:** card glassmorphic roja con error visible en pantalla
+  - **Éxito:** placeholder con datos de verificación
+
+**Placeholder (para reemplazar en Tarea 5):**
+- Título "Planificación — Grilla en construcción"
+- Card glassmorphic con:
+  - Total Costo-Costo (formato moneda ARS)
+  - Cantidad de Rubros
+  - Plazo (meses o "No configurado")
+  - Fecha Inicio
+  - Lista de rubros con cantidad de ítems cada uno
+
+**Estilos:**
+- Mesh gradient background (igual que presupuesto)
+- Glass cards con blur(20px), transparencia, bordes sutiles
+- Paleta pragma: colores `#1A1A2E` (texto), `#6B7080` (labels), `#7A6A5A` (carga)
+
 ## Lo que quedó pendiente
 - La migración de BD debe ejecutarse manualmente en Supabase SQL Editor (pendiente desde tarea 1).
-- Hook `usePlanificacion` (ej: CRUD local similar a `useInsumos`, reutilizando GET /api/planificacion/[obraId] y POST /api/planificacion).
-- Frontend de planificación (grilla ítems × meses, inputs editables que llaman a POST /api/planificacion).
+- **Tarea 5 (próxima):** Grilla interactiva ítems × meses, inputs editables para `pct_plan`, que llaman a `guardarCelda()` del hook.
 
 ## Decisiones tomadas
 - `mes` es integer relativo (no fecha) para permitir que la planificación sea independiente de la fecha de inicio de la obra. La interfaz decidirá cómo traducir a calendarios.
@@ -135,25 +196,36 @@ No se realizaron modificaciones en este endpoint.
 - Incluí validaciones (`CHECK`) en la migración para capturar errores en origen.
 
 ## Próximos pasos sugeridos
-1. Ejecutar la migración 008 en Supabase SQL Editor (ver SQL abajo).
-2. Crear hook `lib/usePlanificacion.ts`:
-   - Lectura inicial: `GET /api/planificacion/[obraId]`
-   - Actualizaciones: `POST /api/planificacion` (upsert/delete de celdas)
-   - Actualización de metadatos: `PUT /api/obras/[id]` (plazo_meses, fecha_inicio)
-3. Diseñar pantalla de planificación: grilla ítems (filas) × meses (columnas), inputs editables que llaman a POST /api/planificacion, validación de suma ~100% por ítem.
+
+### Tarea 5 (siguiente): Grilla interactiva
+1. Diseñar grilla ítems (filas) × meses (columnas)
+2. Inputs editables para cada celda (item_id, mes)
+3. onChange → llamar a `hook.guardarCelda(item_id, mes, pct_plan)`
+4. Validación: mostrar suma de porcentajes por ítem (target ~100%)
+5. Reemplazar el placeholder de la página con la grilla real
+
+### Completar después
+1. ✅ Ejecutar migración 008 en Supabase SQL Editor (ver SQL abajo) — **bloquea todas las tareas**
+2. Configurador inline de plazo_meses y fecha_inicio (probablemente en un modal o en la página de planificación)
 
 ## Archivos tocados — Resumen completo
 
 ### Tarea 1: Esquema DB
 - `supabase/migrations/008_planificacion.sql` (nuevo) — crea tabla `planificacion`, agrega `plazo_meses` a `obras`
 
-### Tarea 2: Lectura
+### Tarea 2: Lectura (Endpoint GET)
 - `types/index.ts` — nuevos tipos: `Planificacion`, `PlanificacionItem`, `PlanificacionRubro`, `PlanificacionResponse`
 - `app/api/planificacion/[obraId]/route.ts` (nuevo) — GET: devuelve grilla completa
 
-### Tarea 3: Escritura
+### Tarea 3: Escritura (Endpoints POST/PUT)
 - `app/api/planificacion/route.ts` (nuevo) — POST: upsert/delete de celdas
 - `app/api/obras/[id]/route.ts` — **sin cambios**, ya soporta plazo_meses y fecha_inicio
+
+### Tarea 4: Frontend (Hook + Tabs + Página)
+- `hooks/usePlanificacion.ts` (nuevo) — hook que integra GET /api/planificacion y POST/PUT de escritura
+- `app/obras/[id]/medicion/page.tsx` (modificado) — tab Planificación agregado (inactivo)
+- `app/obras/[id]/presupuesto/page.tsx` (modificado) — tab Planificación agregado (inactivo)
+- `app/obras/[id]/planificacion/page.tsx` (nuevo) — página con cáscara, tab activo, placeholder con datos de verificación
 
 ## Sobre sincronización de cálculos
 - **Lectura (GET /api/planificacion)**: reutiliza `lib/calculos.ts::calcularPrecioReceta()` (misma función que `/api/presupuesto`) → sincronizado.

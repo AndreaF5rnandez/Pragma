@@ -750,6 +750,13 @@ export default function MedicionPage() {
           >
             Presupuesto
           </Link>
+          <Link
+            href={`/obras/${obraId}/planificacion`}
+            className="px-5 flex items-center text-sm font-medium border-b-2 border-transparent transition-colors"
+            style={{ color: '#6B7080' }}
+          >
+            Planificación
+          </Link>
         </nav>
       </header>
 
